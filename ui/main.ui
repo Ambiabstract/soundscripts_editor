@@ -123,6 +123,18 @@
       </widget>
      </item>
      <item>
+      <widget class="QPushButton" name="saveSoundscriptButton">
+       <property name="font">
+        <font>
+         <pointsize>12</pointsize>
+        </font>
+       </property>
+       <property name="text">
+        <string>Save Soundscript</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QPushButton" name="addSoundsButton">
        <property name="enabled">
         <bool>false</bool>
