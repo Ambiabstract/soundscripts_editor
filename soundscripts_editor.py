@@ -5,6 +5,7 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 from tksheet import Sheet
 import json
 from pathlib import Path
+import re
 
 # Основные константы на чтение
 ABOUT_TOOL_VERSION = "0.0.2"
@@ -33,7 +34,7 @@ class App(TkinterDnD.Tk):
         self.title(f"{ABOUT_TOOL_NAME}")
         self.geometry(WINDOW_SIZE)
         self.resizable(False, False)
-        self.items = []  # ???
+        self.items = []  # список словарей в котором хранятся все нужные нам ноды
         self.gameinfo_path = None
         self.project_name = None
 
@@ -42,7 +43,7 @@ class App(TkinterDnD.Tk):
         
         gameinfo_path = self.load_cache()
         if gameinfo_path:
-            print(f"gameinfo_path from cache: {gameinfo_path}")
+            # print(f"gameinfo_path from cache: {gameinfo_path}")
             self.gameinfo_path = gameinfo_path
             self.prepare_work()
 
@@ -174,18 +175,33 @@ class App(TkinterDnD.Tk):
     # Метод для обновления данных таблицы (содержания), в конце ещё ссылка на апдейт визуала
     def update_table(self):
         data = []
-        print(f"update_table self.items: {self.items}")
-        for index, file_info in enumerate(self.items, start=1):
-            print(f"index: {index}")
-            print(f"file_info: {file_info}")
+        print(f"\n{len(self.items)} ITEMS:")
+        for index, item_info in enumerate(self.items, start=1):
+            # print(f"index: {index}")
+            # print(f"item_info: {item_info}")
             
-            # Временное
-            entry_name = file_info["entry_name"]
-            sounds = file_info["sounds"]
+            # Получение данных из списка нод для заполнения таблицы
+            entry_name = item_info["entry_name"]
+            channel = item_info["channel"]
+            soundlevel = item_info["soundlevel"]
+            volume = item_info["volume"]
+            pitch = item_info["pitch"]
+            sounds = item_info["sounds"]
+            
+            # Проверка
+            print(f"{index}  {entry_name}")
+            print(f"    channel:    {channel}")
+            print(f"    soundlevel: {soundlevel}")
+            print(f"    volume:     {volume}")
+            print(f"    pitch:      {pitch}")
+            print(f"    sounds:     {sounds}")
 
-            # имя канал саундлевел волюм питч путь
-            data.append([entry_name, DEFAULT_CHANNEL, DEFAULT_SOUNDLEVEL, DEFAULT_VOLUME, DEFAULT_PITCH, sounds])
-        # У разных версий сигнатура отличается — используем безопасный вызов
+            # Заполняем данные таблицы
+            data.append([entry_name, channel, soundlevel, volume, pitch, sounds])
+        
+        # print(f"data: {data}")
+        
+        # Назначить новые данные
         try:
             self.sheet.set_sheet_data(data, redraw=False)
         except TypeError:
@@ -194,16 +210,37 @@ class App(TkinterDnD.Tk):
         
         # Апдейт визуала таблицы
         self.redraw_sheet()
+
         # Апдейт статусной надписи
         self.status_var.set(f"Строк: {len(self.items)}")
 
     # Метод для добавления в таблицу файлов которые были кинуты драг н дропом
     def add_files(self, paths):
         files_count = 0
+        print(f"self.items: {self.items}")
         for path in paths:
             path = os.path.abspath(path)
-            name = os.path.basename(path) or path
-            self.items.append({"entry_name": name, "sounds": path})
+            file_name = os.path.basename(path) or path
+            
+            # Фиксим имена
+            file_name = file_name.replace(".wav", "").replace(".WAV", "")
+            file_name = re.sub(r"[А-Яа-яЁё]", "", file_name)
+            file_name = re.sub(r"[ \-\—\(\)\[\]\{\},;!@#$%^&*+=№~`«»<>?/\\|\"']", "_", file_name)
+            file_name = re.sub(r"_+", "_", file_name)
+            file_name = file_name.strip("_")
+            
+            # Уникальные имена
+            existing_names = [e["entry_name"] for e in self.items]
+            if file_name in existing_names:
+                i = 1
+                new_file_name = f"{file_name}_{i}"
+                while new_file_name in existing_names:
+                    i += 1
+                    new_file_name = f"{file_name}_{i}"
+                file_name = new_file_name
+
+            # Добавление новых нод
+            self.items.append({"entry_name": file_name, "channel": DEFAULT_CHANNEL, "soundlevel": DEFAULT_SOUNDLEVEL, "volume": DEFAULT_VOLUME, "pitch": DEFAULT_PITCH, "sounds": path})
             files_count += 1
 
         self.update_table()
@@ -224,12 +261,12 @@ class App(TkinterDnD.Tk):
 
     # Универсальный метод для файлового браузера
     def open_files_dialog(self, title, filter_str="All Files (*.*)", start_dir=".", multi=True):
-        print(f"open_files_dialog start")
-        print(f"self: {self}")
-        print(f"title: {title}")
-        print(f"filter_str: {filter_str}")
-        print(f"start_dir: {start_dir}")
-        print(f"multi: {multi}")
+        # print(f"open_files_dialog start")
+        # print(f"self: {self}")
+        # print(f"title: {title}")
+        # print(f"filter_str: {filter_str}")
+        # print(f"start_dir: {start_dir}")
+        # print(f"multi: {multi}")
 
         # Система фильтра расширений файлов
         filetypes = []
@@ -275,9 +312,9 @@ class App(TkinterDnD.Tk):
 
         # Если гейминфо выбран и назначен удачно то идём дальше 
         if not self.gameinfo_path: return
-        print(f"self.gameinfo_path: {self.gameinfo_path}")
-        print(f"self.project_name: {self.project_name}")
-        print(f"self.last_dir: {self.last_dir}")
+        # print(f"self.gameinfo_path: {self.gameinfo_path}")
+        # print(f"self.project_name: {self.project_name}")
+        # print(f"self.last_dir: {self.last_dir}")
         
         # Сохраняемся
         self.save_cache()
@@ -325,7 +362,7 @@ class App(TkinterDnD.Tk):
         cache_path = Path(CACHE_PATH)
         if not cache_path.exists():
             return None
-        print(f"cache_path: {cache_path}")
+        # print(f"cache_path: {cache_path}")
         try:
             gameinfo_path = Path(json.loads(cache_path.read_text(encoding="utf-8"))[0].get("gameinfo_path")[0])
             # print(f"gameinfo_path: {gameinfo_path}")
@@ -345,8 +382,8 @@ class App(TkinterDnD.Tk):
         try:
             Path(CACHE_PATH).write_text(json.dumps(json_dumps_content, indent=2), encoding="utf-8")
             print(f"Cache saved!")
-            print(f"Content:")
-            print(f"{json_dumps_content}")
+            # print(f"Content:")
+            # print(f"{json_dumps_content}")
             return True
         except Exception:
             return False
