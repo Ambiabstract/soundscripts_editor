@@ -210,3 +210,4 @@ __marimo__/
 /_dev
 /_backup
 *.wav
+soundscripts_editor_cache.json
