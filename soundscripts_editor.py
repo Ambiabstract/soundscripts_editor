@@ -5,20 +5,21 @@ from tkinterdnd2 import DND_FILES, TkinterDnD
 from tksheet import Sheet
 
 # Основные константы на чтение
-about_tool_version = "0.0.2"
-about_tool_name = f"Soundscripts Editor v{about_tool_version}"
-about_tool_description = "This tool helps to edit soundscripts files used on Source Engine."
-about_tool_author = "Shitcoded by Ambiabstract (Sergey Shavin)."
-about_tool_requested = "Requested by Aptekarr."
-about_tool_link = "Github: https://github.com/Ambiabstract/soundscripts_editor"
-about_tool_discord = "Discord: @Ambiabstract"
-window_size = "1024x720"
-column_widths = [(0, 200), (1, 100), (2, 100), (3, 100), (4, 100), (5, 385)]
-headers = ["entry.name", "channel", "soundlevel", "volume", "pitch", "sounds"]
-default_channel = "CHAN_AUTO"
-default_soundlevel = "SNDLVL_NORM"
-default_volume = "VOL_NORM"
-default_pitch = "PITCH_NORM"
+ABOUT_TOOL_VERSION = "0.0.2"
+ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
+ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
+ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
+ABOUT_TOOL_REQUESTED = "Requested by Aptekarr."
+ABOUT_TOOL_LINK = "Github: https://github.com/Ambiabstract/soundscripts_editor"
+ABOUT_TOOL_DISCORD = "Discord: @Ambiabstract"
+WINDOW_SIZE = "1024x720"
+COLUMN_WIDTHS = [(0, 200), (1, 100), (2, 100), (3, 100), (4, 100), (5, 385)]
+HEADERS = ["entry.name", "channel", "soundlevel", "volume", "pitch", "sounds"]
+DEFAULT_CHANNEL = "CHAN_AUTO"
+DEFAULT_SOUNDLEVEL = "SNDLVL_NORM"
+DEFAULT_VOLUME = "VOL_NORM"
+DEFAULT_PITCH = "PITCH_NORM"
+CACHE_PATH = "soundscripts_editor_cache.json"
 
 class App(TkinterDnD.Tk):
     # Конструктор класса - метод, который задаёт начальное состояние объекта сразу после его создания
@@ -26,8 +27,8 @@ class App(TkinterDnD.Tk):
         super().__init__() # вызывает конструктор родительского класса TkinterDnD.Tk чтобы всё работало
         
         # Основные переменные класса
-        self.title(f"{about_tool_name}")
-        self.geometry(window_size)
+        self.title(f"{ABOUT_TOOL_NAME}")
+        self.geometry(WINDOW_SIZE)
         self.resizable(False, False)
         self.items = []  # ???
         self.gameinfo_path = None
@@ -82,7 +83,7 @@ class App(TkinterDnD.Tk):
 
         self.sheet = Sheet(
             table_frame,
-            headers=headers,
+            headers=HEADERS,
             data=[],
             show_x_scrollbar=False,
             show_y_scrollbar=True,
@@ -112,7 +113,7 @@ class App(TkinterDnD.Tk):
             pass
 
         # Настройка ширины столбцов
-        for column, width in column_widths:
+        for column, width in COLUMN_WIDTHS:
             self.sheet.column_width(column, width)
 
         # Бинды на всякие приколы контроля таблицы
@@ -135,13 +136,13 @@ class App(TkinterDnD.Tk):
     # Метод визуальной перерисовки/апдейта таблицы для разных версий tksheet
     def redraw_sheet(self):
         # Настройка ширины столбцов
-        for column, width in column_widths:
+        for column, width in COLUMN_WIDTHS:
             self.sheet.column_width(column, width)
 
         try:
             # Явное обновление заголовков
             if hasattr(self.sheet, "headers"):
-                self.sheet.headers(headers)
+                self.sheet.headers(HEADERS)
         except Exception:
             pass
         try:
@@ -174,7 +175,7 @@ class App(TkinterDnD.Tk):
             sounds = file_info["sounds"]
 
             # имя канал саундлевел волюм питч путь
-            data.append([entry_name, default_channel, default_soundlevel, default_volume, default_pitch, sounds])
+            data.append([entry_name, DEFAULT_CHANNEL, DEFAULT_SOUNDLEVEL, DEFAULT_VOLUME, DEFAULT_PITCH, sounds])
         # У разных версий сигнатура отличается — используем безопасный вызов
         try:
             self.sheet.set_sheet_data(data, redraw=False)
@@ -209,7 +210,7 @@ class App(TkinterDnD.Tk):
 
     # Метод с описанием программы
     def about_window(self):
-        about_tool_full = about_tool_name + "\n\n" + about_tool_description + "\n\n" + about_tool_author + "\n" + about_tool_requested + "\n\n" + about_tool_link + "\n" + about_tool_discord
+        about_tool_full = ABOUT_TOOL_NAME + "\n\n" + ABOUT_TOOL_DESCRIPTION + "\n\n" + ABOUT_TOOL_AUTHOR + "\n" + ABOUT_TOOL_REQUESTED + "\n\n" + ABOUT_TOOL_LINK + "\n" + ABOUT_TOOL_DISCORD
         messagebox.showinfo("About", about_tool_full)
 
     # Универсальный метод для файлового браузера
