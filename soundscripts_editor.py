@@ -3,6 +3,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from tkinterdnd2 import DND_FILES, TkinterDnD
 from tksheet import Sheet
+import json
+from pathlib import Path
 
 # Основные константы на чтение
 ABOUT_TOOL_VERSION = "0.0.2"
@@ -21,6 +23,7 @@ DEFAULT_VOLUME = "VOL_NORM"
 DEFAULT_PITCH = "PITCH_NORM"
 CACHE_PATH = "soundscripts_editor_cache.json"
 
+# Класс приложения
 class App(TkinterDnD.Tk):
     # Конструктор класса - метод, который задаёт начальное состояние объекта сразу после его создания
     def __init__(self):
@@ -36,6 +39,12 @@ class App(TkinterDnD.Tk):
 
         # Строим визуалочку окна, тулбара, нижней строчки
         self.build_main_ui()
+        
+        gameinfo_path = self.load_cache()
+        if gameinfo_path:
+            print(f"gameinfo_path from cache: {gameinfo_path}")
+            self.gameinfo_path = gameinfo_path
+            self.prepare_work()
 
     # Метод для создания основной визуальной части интерфейса (тулбар, кнопки, нижняя часть со статусной надписью)
     def build_main_ui(self):
@@ -269,7 +278,15 @@ class App(TkinterDnD.Tk):
         print(f"self.gameinfo_path: {self.gameinfo_path}")
         print(f"self.project_name: {self.project_name}")
         print(f"self.last_dir: {self.last_dir}")
+        
+        # Сохраняемся
+        self.save_cache()
+        
+        # Завершаем подготовку к работе
+        self.prepare_work()
 
+    # Метод для завершения подготовки к работе
+    def prepare_work(self):
         # Если таблица не существует - анфризим кнопки, создаём таблицу и настраиваем дрег н дроп
         if not hasattr(self, "sheet"):
             self.unfreeze_control() # Активация контроля кнопок тулбара
@@ -302,6 +319,37 @@ class App(TkinterDnD.Tk):
         print(f"sel: {sel}")
         row = sel.get("row")
         print(f"row: {row}")
+
+    # Метод для загрузки кэша из файла
+    def load_cache(self) -> str | None:
+        cache_path = Path(CACHE_PATH)
+        if not cache_path.exists():
+            return None
+        print(f"cache_path: {cache_path}")
+        try:
+            gameinfo_path = Path(json.loads(cache_path.read_text(encoding="utf-8"))[0].get("gameinfo_path")[0])
+            # print(f"gameinfo_path: {gameinfo_path}")
+            if gameinfo_path.exists(): return gameinfo_path
+            return None
+        except Exception as e:
+            print(f"Failed to load cache!")
+            print(f"Exception:")
+            print(e)
+            return None
+    
+    # Метод для сохранения кэша в файл
+    def save_cache(self) -> bool:
+        json_dumps_content = [
+            {"gameinfo_path": self.gameinfo_path}
+        ]
+        try:
+            Path(CACHE_PATH).write_text(json.dumps(json_dumps_content, indent=2), encoding="utf-8")
+            print(f"Cache saved!")
+            print(f"Content:")
+            print(f"{json_dumps_content}")
+            return True
+        except Exception:
+            return False
 
 def main():
     app = App()
