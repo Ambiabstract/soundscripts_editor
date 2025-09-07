@@ -1,10 +1,10 @@
 import os
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, filedialog
 from tkinterdnd2 import DND_FILES, TkinterDnD
 from tksheet import Sheet
 
-# Основные переменные
+# Основные константы на чтение
 about_tool_version = "0.0.2"
 about_tool_name = f"Soundscripts Editor v{about_tool_version}"
 about_tool_description = "This tool helps to edit soundscripts files used on Source Engine."
@@ -24,10 +24,16 @@ class App(TkinterDnD.Tk):
     # Конструктор класса - метод, который задаёт начальное состояние объекта сразу после его создания
     def __init__(self):
         super().__init__() # вызывает конструктор родительского класса TkinterDnD.Tk чтобы всё работало
+        
+        # Основные переменные класса
         self.title(f"{about_tool_name}")
         self.geometry(window_size)
         self.resizable(False, False)
         self.items = []  # ???
+        self.gameinfo_path = None
+        self.project_name = None
+
+        # Строим визуалочку окна, тулбара, нижней строчки
         self.build_main_ui()
 
     # Метод для создания основной визуальной части интерфейса (тулбар, кнопки, нижняя часть со статусной надписью)
@@ -77,48 +83,7 @@ class App(TkinterDnD.Tk):
         self.sheet = Sheet(
             table_frame,
             headers=headers,
-            data=[
-                ["zalupa", "123", "312", "111", "222", "govno"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-                ["zalupa", "123", "312", "111", "222", "333"],
-            ],
+            data=[],
             show_x_scrollbar=False,
             show_y_scrollbar=True,
             height=1, # ?????
@@ -247,11 +212,62 @@ class App(TkinterDnD.Tk):
         about_tool_full = about_tool_name + "\n\n" + about_tool_description + "\n\n" + about_tool_author + "\n" + about_tool_requested + "\n\n" + about_tool_link + "\n" + about_tool_discord
         messagebox.showinfo("About", about_tool_full)
 
+    # Универсальный метод для файлового браузера
+    def open_files_dialog(self, title, filter_str="All Files (*.*)", start_dir=".", multi=True):
+        print(f"open_files_dialog start")
+        print(f"self: {self}")
+        print(f"title: {title}")
+        print(f"filter_str: {filter_str}")
+        print(f"start_dir: {start_dir}")
+        print(f"multi: {multi}")
+
+        # Система фильтра расширений файлов
+        filetypes = []
+        if filter_str:
+            for f in filter_str.split(";;"):
+                parts = f.split("(", 1)
+                if len(parts) == 2:
+                    desc = parts[0].strip()
+                    patterns = parts[1].rstrip(")").strip()
+                    filetypes.append((desc, patterns))
+    
+        # Стартовая папка если указана (start_dir), либо последняя открытая папка (last_dir)
+        if start_dir == "." and not hasattr(self, "last_dir"): initial_dir = "."
+        elif start_dir == "." and hasattr(self, "last_dir"): initial_dir = self.last_dir
+        else: initial_dir = start_dir
+    
+        if multi:
+            files = filedialog.askopenfilenames(
+                parent=self,
+                title=title,
+                initialdir=initial_dir,
+                filetypes=filetypes or [("All Files", "*.*")]
+            )
+            if files:
+                self.last_dir = str(files[0]).rsplit("/", 1)[0]  # обновляем опследнюю папку (last_dir)
+            return list(files)
+        else:
+            file = filedialog.askopenfilename(
+                parent=self,
+                title=title,
+                initialdir=initial_dir,
+                filetypes=filetypes or [("All Files", "*.*")]
+            )
+            if file:
+                self.last_dir = str(file).rsplit("/", 1)[0]
+                return [file]
+            return []
+    
     # Метод для сетапа гейминфо
     def set_gameinfo(self):
         # тут логика чтобы выбрать гейминфо через браузер
+        self.gameinfo_path = self.open_files_dialog(title="Open Gameinfo.txt", filter_str="Text (gameinfo.txt);;All (*)", multi=False)
 
         # Если гейминфо выбран и назначен удачно то идём дальше 
+        if not self.gameinfo_path: return
+        print(f"self.gameinfo_path: {self.gameinfo_path}")
+        print(f"self.project_name: {self.project_name}")
+        print(f"self.last_dir: {self.last_dir}")
 
         # Если таблица не существует - анфризим кнопки, создаём таблицу и настраиваем дрег н дроп
         if not hasattr(self, "sheet"):
@@ -295,8 +311,11 @@ try:
         main()
 except Exception as e:
     import traceback
+    # from tkinter import messagebox
     print(f"An error occurred: {e}")
-    print(traceback.format_exc())
-    input("\nPress Enter to exit...")
+    traceback_error = traceback.format_exc()
+    print(traceback_error)
+    messagebox.showerror("ERROR", f"{traceback_error}")
+    # input("\nPress Enter to exit...")
 finally:
     pass
