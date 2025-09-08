@@ -18,6 +18,7 @@ ABOUT_TOOL_DISCORD = "Discord: @Ambiabstract"
 WINDOW_SIZE = "1024x720"
 COLUMN_WIDTHS = [(0, 200), (1, 100), (2, 100), (3, 100), (4, 100), (5, 385)]
 HEADERS = ["entry.name", "channel", "soundlevel", "volume", "pitch", "sounds"]
+BASE_ROW_HEIGHT = 22
 DEFAULT_CHANNEL = "CHAN_AUTO"
 DEFAULT_SOUNDLEVEL = "SNDLVL_NORM"
 DEFAULT_VOLUME = "VOL_NORM"
@@ -148,7 +149,7 @@ class App(TkinterDnD.Tk):
         # Настройка ширины столбцов
         for column, width in COLUMN_WIDTHS:
             self.sheet.column_width(column, width)
-
+        
         try:
             # Явное обновление заголовков
             if hasattr(self.sheet, "headers"):
@@ -187,17 +188,23 @@ class App(TkinterDnD.Tk):
             volume = item_info["volume"]
             pitch = item_info["pitch"]
             sounds = item_info["sounds"]
-            
+            sounds_str = ""
+
             # Проверка
             print(f"{index}  {entry_name}")
             print(f"    channel:    {channel}")
             print(f"    soundlevel: {soundlevel}")
             print(f"    volume:     {volume}")
             print(f"    pitch:      {pitch}")
-            print(f"    sounds:     {sounds}")
+            print(f"    sounds:     ")
+            sound_count = 0
+            for sound in sounds:
+                sound_count += 1
+                print(f"    {sound}")
+                sounds_str = sounds_str + str(sound)  + "\n"
 
             # Заполняем данные таблицы
-            data.append([entry_name, channel, soundlevel, volume, pitch, sounds])
+            data.append([entry_name, channel, soundlevel, volume, pitch, sounds_str])
         
         # print(f"data: {data}")
         
@@ -207,6 +214,11 @@ class App(TkinterDnD.Tk):
         except TypeError:
             # В старых версиях нет аргументов redraw/*_positions
             self.sheet.set_sheet_data(data)
+        
+        # Настройка высот строчек для каждой строки
+        for index, item_info in enumerate(self.items, start=1):
+            sounds = item_info["sounds"]
+            self.sheet.row_height(index-1, len(sounds) * BASE_ROW_HEIGHT + BASE_ROW_HEIGHT)
         
         # Апдейт визуала таблицы
         self.redraw_sheet()
@@ -239,8 +251,11 @@ class App(TkinterDnD.Tk):
                     new_file_name = f"{file_name}_{i}"
                 file_name = new_file_name
 
+            # Добавление пути файла в список звуков
+            sounds = [path]
+            
             # Добавление новых нод
-            self.items.append({"entry_name": file_name, "channel": DEFAULT_CHANNEL, "soundlevel": DEFAULT_SOUNDLEVEL, "volume": DEFAULT_VOLUME, "pitch": DEFAULT_PITCH, "sounds": path})
+            self.items.append({"entry_name": file_name, "channel": DEFAULT_CHANNEL, "soundlevel": DEFAULT_SOUNDLEVEL, "volume": DEFAULT_VOLUME, "pitch": DEFAULT_PITCH, "sounds": sounds})
             files_count += 1
 
         self.update_table()
