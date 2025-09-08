@@ -6,9 +6,10 @@ from tksheet import Sheet
 import json
 from pathlib import Path
 import re
+from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.0.2"
+ABOUT_TOOL_VERSION = "0.0.3"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -38,6 +39,7 @@ class App(TkinterDnD.Tk):
         self.items = []  # список словарей в котором хранятся все нужные нам ноды
         self.gameinfo_path = None
         self.project_name = None
+        self.soundscript_path = None
 
         # Строим визуалочку окна, тулбара, нижней строчки
         self.build_main_ui()
@@ -59,11 +61,11 @@ class App(TkinterDnD.Tk):
         self.btn_new_ss.pack(
             side=tk.LEFT, padx=(0, 0)
         )
-        self.btn_open_ss = ttk.Button(self.toolbar, text="Open Soundscript", command=self.about_window, state="disabled")
+        self.btn_open_ss = ttk.Button(self.toolbar, text="Open Soundscript", command=self.open_soundscript, state="disabled")
         self.btn_open_ss.pack(
             side=tk.LEFT, padx=(0, 0)
         )
-        self.btn_save_ss = ttk.Button(self.toolbar, text="Save Soundscript", command=self.about_window, state="disabled")
+        self.btn_save_ss = ttk.Button(self.toolbar, text="Save Soundscript", command=self.save_soundscript, state="disabled")
         self.btn_save_ss.pack(
             side=tk.LEFT, padx=(0, 0)
         )
@@ -176,6 +178,7 @@ class App(TkinterDnD.Tk):
     # Метод для обновления данных таблицы (содержания), в конце ещё ссылка на апдейт визуала
     def update_table(self):
         data = []
+        print(f"self.items: {self.items}")
         print(f"\n{len(self.items)} ITEMS:")
         for index, item_info in enumerate(self.items, start=1):
             # print(f"index: {index}")
@@ -189,6 +192,15 @@ class App(TkinterDnD.Tk):
             pitch = item_info["pitch"]
             sounds = item_info["sounds"]
             sounds_str = ""
+            
+            # Проверка
+            '''
+            sounds.append("test_001")
+            sounds.append("test_002")
+            sounds.append("test_003")
+            sounds.append("test_004")
+            sounds.append("test_005")
+            '''
 
             # Проверка
             print(f"{index}  {entry_name}")
@@ -229,7 +241,6 @@ class App(TkinterDnD.Tk):
     # Метод для добавления в таблицу файлов которые были кинуты драг н дропом
     def add_files(self, paths):
         files_count = 0
-        print(f"self.items: {self.items}")
         for path in paths:
             path = os.path.abspath(path)
             file_name = os.path.basename(path) or path
@@ -402,6 +413,108 @@ class App(TkinterDnD.Tk):
             return True
         except Exception:
             return False
+
+    # Функция для дампа содержания саундскрипта из итемов
+    def dump_soundscript_from_items(self) -> str:
+        items = self.items
+        out = []
+        for r in items:
+            out.append(f'"{r["entry_name"]}"\n{{')
+            out.append(f'\t"channel"\t"{r["channel"]}"')
+            out.append(f'\t"volume"\t"{r["volume"]}"')
+            out.append(f'\t"soundlevel"\t"{r["soundlevel"]}"')
+            out.append(f'\t"pitch"\t\t"{r["pitch"]}"')
+    
+            if not r.get("sounds"):
+                out.append('\t"wave"\t\t""')
+            elif len(r["sounds"]) == 1:
+                out.append(f'\t"wave"\t\t"{r["sounds"][0]}"')
+            else:
+                out.append('\t"rndwave"\n\t{')
+                for w in r["sounds"]:
+                    out.append(f'\t\t"wave"\t"{w}"')
+                out.append('\t}')
+            out.append('}\n')
+        return "\n".join(out)
+    
+    # Функция для сохранения саундскрипта
+    def save_soundscript(self):
+        soundscript_content = self.dump_soundscript_from_items()
+        print(f"soundscript_content:")
+        print(soundscript_content)
+    
+    # Функция для открытия саундскрипта
+    def open_soundscript(self):
+        self.gameinfo_path = str(self.gameinfo_path)
+        scripts_folder = os.path.dirname(self.gameinfo_path) + "/scripts"
+        self.soundscript_path = self.open_files_dialog(title="Open soundscript", filter_str="Text (*.txt);;All (*)", start_dir = scripts_folder, multi=False)
+        if not self.soundscript_path: return
+        self.soundscript_path = self.soundscript_path[0]
+        if not self.soundscript_path: return
+        with open(self.soundscript_path, 'r', encoding='utf-8') as soundscript_file: soundscript_content = soundscript_file.read()
+        print(f"soundscript_content:")
+        print(soundscript_content)
+        try:
+            new_items = self.parse_soundscript(soundscript_content)
+            print(f"new_items:")
+            print(new_items)
+            if new_items:
+                self.items = new_items
+                self.update_table()
+        except Exception as e:
+            print(f"ERROR READING SOUNDSCRIPT FILE!")
+            print(e)
+            return
+
+    # Функция для чтения саундскрипта
+    def parse_soundscript(self, text) -> List[Dict[str, Any]]:
+        items = []
+        # Регулярка для нахождения каждого блока
+        block_pattern = re.compile(r'"([^"]+)"\s*\{([^}]*)\}', re.DOTALL)
+    
+        for match in block_pattern.finditer(text):
+            entry_name = match.group(1)
+            body = match.group(2)
+    
+            item: Dict[str, Any] = {
+                "entry_name": entry_name,
+                "channel": "",
+                "volume": "",
+                "soundlevel": "",
+                "pitch": "",
+                "sounds": []
+            }
+    
+            # Проверка на rndwave
+            if "rndwave" in body:
+                # находим все wave внутри rndwave
+                rnd_pattern = re.compile(r'"wave"\s+"([^"]+)"')
+                item["sounds"] = rnd_pattern.findall(body)
+            else:
+                wave_match = re.search(r'"wave"\s+"([^"]+)"', body)
+                if wave_match:
+                    item["sounds"] = [wave_match.group(1)]
+    
+            # остальные параметры
+            channel_match = re.search(r'"channel"\s+"([^"]+)"', body)
+            if channel_match:
+                item["channel"] = channel_match.group(1)
+    
+            volume_match = re.search(r'"volume"\s+"([^"]+)"', body)
+            if volume_match:
+                item["volume"] = volume_match.group(1)
+    
+            soundlevel_match = re.search(r'"soundlevel"\s+"([^"]+)"', body)
+            if soundlevel_match:
+                item["soundlevel"] = soundlevel_match.group(1)
+    
+            pitch_match = re.search(r'"pitch"\s+"([^"]+)"', body)
+            if pitch_match:
+                item["pitch"] = pitch_match.group(1)
+    
+            items.append(item)
+    
+        return items
 
 def main():
     app = App()
