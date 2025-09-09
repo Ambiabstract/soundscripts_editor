@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.0.3"
+ABOUT_TOOL_VERSION = "0.0.4"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -324,7 +324,7 @@ class App(TkinterDnD.Tk):
         about_tool_full = ABOUT_TOOL_NAME + "\n\n" + ABOUT_TOOL_DESCRIPTION + "\n\n" + ABOUT_TOOL_AUTHOR + "\n" + ABOUT_TOOL_REQUESTED + "\n\n" + ABOUT_TOOL_LINK + "\n" + ABOUT_TOOL_DISCORD
         messagebox.showinfo("About", about_tool_full)
 
-    # Универсальный метод для файлового браузера
+    # Универсальный метод для файлового браузера на открытие файлов
     def open_files_dialog(self, title, filter_str="All Files (*.*)", start_dir=".", multi=True):
         # print(f"open_files_dialog start")
         # print(f"self: {self}")
@@ -369,7 +369,58 @@ class App(TkinterDnD.Tk):
                 self.last_dir = str(file).rsplit("/", 1)[0]
                 return [file]
             return []
+
+    # Универсальный метод для файлового браузера на сохранение файла
+    def save_file_dialog(self, title, filter_str="All Files (*.*)", start_dir=".", suggested_name="", add_default_ext=True):
+        filetypes = []
+        default_ext = ""
+        if filter_str:
+            for i, f in enumerate(filter_str.split(";;")):
+                parts = f.split("(", 1)
+                if len(parts) == 2:
+                    desc = parts[0].strip()
+                    patterns = parts[1].rstrip(")").strip()
+                    filetypes.append((desc, patterns))
+                    if i == 0 and add_default_ext:
+                        first_pat = patterns.split(";")[0].strip()
+                        if first_pat.startswith("*.") and len(first_pat) > 2:
+                            default_ext = first_pat[1:]
+        if not filetypes:
+            filetypes = [("All Files", "*.*")]
+
+        if start_dir == ".":
+            initial_dir = getattr(self, "last_dir", ".")
+        else:
+            initial_dir = start_dir
+
+        kwargs = dict(
+            parent=self,
+            title=title,
+            initialdir=initial_dir,
+            filetypes=filetypes,
+            initialfile=suggested_name or None,
+        )
+        if add_default_ext and default_ext:
+            kwargs["defaultextension"] = default_ext
+        try:
+            kwargs["confirmoverwrite"] = True
+        except Exception:
+            pass
     
+        path = filedialog.asksaveasfilename(**kwargs)
+
+        if not path:
+            return ""
+    
+        # Если пользователь не указал расширение и по каким-то причинам Tk не добавил его — добавим сами
+        if add_default_ext and default_ext and not os.path.splitext(path)[1]:
+            path += default_ext
+    
+        # Запоминаем последнюю папку
+        self.last_dir = os.path.dirname(path) if os.path.dirname(path) else "."
+    
+        return path
+
     # Метод для сетапа гейминфо
     def set_gameinfo(self):
         # тут логика чтобы выбрать гейминфо через браузер
@@ -486,17 +537,17 @@ class App(TkinterDnD.Tk):
         out = []
         for r in items:
             out.append(f'"{r["entry_name"]}"\n{{')
-            out.append(f'\t"channel"\t"{r["channel"]}"')
-            out.append(f'\t"volume"\t"{r["volume"]}"')
+            out.append(f'\t"channel"\t\t"{r["channel"]}"')
+            if r["volume"]: out.append(f'\t"volume"\t\t"{r["volume"]}"')
             out.append(f'\t"soundlevel"\t"{r["soundlevel"]}"')
-            out.append(f'\t"pitch"\t\t"{r["pitch"]}"')
+            if r["pitch"]: out.append(f'\t"pitch"\t\t\t"{r["pitch"]}"')
     
             if not r.get("sounds"):
                 out.append('\t"wave"\t\t""')
             elif len(r["sounds"]) == 1:
-                out.append(f'\t"wave"\t\t"{r["sounds"][0]}"')
+                out.append(f'\t"wave"\t\t\t"{r["sounds"][0]}"')
             else:
-                out.append('\t"rndwave"\n\t{')
+                out.append('\t"rndwave"\n\t\t{')
                 for w in r["sounds"]:
                     out.append(f'\t\t"wave"\t"{w}"')
                 out.append('\t}')
@@ -505,9 +556,18 @@ class App(TkinterDnD.Tk):
     
     # Функция для сохранения саундскрипта
     def save_soundscript(self):
+        scripts_folder = os.path.dirname(self.gameinfo_path) + "/scripts"
+        ss_name = self.project_name.split()[0].lower() + "_" + "soundscript"
+        print(f"ss_name: {ss_name}")
+        ss_path = self.save_file_dialog(title = "Save Soundscript", filter_str = "Text (*.txt);;All (*)", start_dir = scripts_folder, suggested_name = ss_name, add_default_ext = True)
+        if not ss_path: return None
+        print(f"ss_path: {ss_path}")
         soundscript_content = self.dump_soundscript_from_items()
         print(f"soundscript_content:")
         print(soundscript_content)
+        with open(ss_path, "w", encoding="utf-8") as f:
+            f.write(soundscript_content)
+        return ss_path
     
     # Функция для открытия саундскрипта
     def open_soundscript(self):
