@@ -40,6 +40,7 @@ class App(TkinterDnD.Tk):
         self.gameinfo_path = None
         self.project_name = None
         self.soundscript_path = None
+        self.soundscript_name = None
 
         # Строим визуалочку окна, тулбара, нижней строчки
         self.build_main_ui()
@@ -245,6 +246,10 @@ class App(TkinterDnD.Tk):
             path = os.path.abspath(path)
             file_name = os.path.basename(path) or path
             
+            # Добавляем к именам первое слово из имени проекта в качестве префикса до точки
+            file_name = self.project_name.split()[0].lower() + "." + file_name
+            # print(f"self.soundscript_name: {self.soundscript_name}")
+            
             # Фиксим имена
             file_name = file_name.replace(".wav", "").replace(".WAV", "")
             file_name = re.sub(r"[А-Яа-яЁё]", "", file_name)
@@ -334,7 +339,8 @@ class App(TkinterDnD.Tk):
     # Метод для сетапа гейминфо
     def set_gameinfo(self):
         # тут логика чтобы выбрать гейминфо через браузер
-        self.gameinfo_path = self.open_files_dialog(title="Open Gameinfo.txt", filter_str="Text (gameinfo.txt);;All (*)", multi=False)
+        self.gameinfo_path = self.open_files_dialog(title="Open Gameinfo.txt", filter_str="Text (gameinfo.txt);;All (*)", multi=False)[0]
+        # print(f"self.gameinfo_path SET GAMEINFO: {self.gameinfo_path}")
 
         # Если гейминфо выбран и назначен удачно то идём дальше 
         if not self.gameinfo_path: return
@@ -350,6 +356,10 @@ class App(TkinterDnD.Tk):
 
     # Метод для завершения подготовки к работе
     def prepare_work(self):
+        # Меняем заголовок окна, добавляя имя проекта из гейминфо
+        self.project_name = self.get_project_name()
+        self.title(f"{ABOUT_TOOL_NAME} | {self.project_name}")
+        
         # Если таблица не существует - анфризим кнопки, создаём таблицу и настраиваем дрег н дроп
         if not hasattr(self, "sheet"):
             self.unfreeze_control() # Активация контроля кнопок тулбара
@@ -358,6 +368,25 @@ class App(TkinterDnD.Tk):
         
         # Обновляем статусную строчку
         self.status_var.set(f"Ready for work! Add new WAV files or open an existing soundscript file.")
+    
+    # Метод для получения имени мода из гейминфо
+    def get_project_name(self):
+        # print(f"self.gameinfo_path GET PROJ NAME: {self.gameinfo_path}")
+        with open(self.gameinfo_path, "r", encoding="utf-8") as f:
+            for raw in f:
+                line = raw.strip()
+                # Игнорим комментарии
+                if not line or line.startswith("//"):
+                    continue
+                m = re.match(r'^game\s+"([^"]+)"\s*$', line)
+                if m:
+                    return m.group(1)
+                    # print(f"self.project_name: {self.project_name}")
+                    break
+        if not self.project_name:
+            print(f"ERROR! game name not found in gameinfo.txt:")
+            print(f"{gameinfo_path}")
+            return
     
     # Метод для анфриза кнопок на тулбаре
     def unfreeze_control(self):
@@ -390,7 +419,7 @@ class App(TkinterDnD.Tk):
             return None
         # print(f"cache_path: {cache_path}")
         try:
-            gameinfo_path = Path(json.loads(cache_path.read_text(encoding="utf-8"))[0].get("gameinfo_path")[0])
+            gameinfo_path = Path(json.loads(cache_path.read_text(encoding="utf-8"))[0].get("gameinfo_path"))
             # print(f"gameinfo_path: {gameinfo_path}")
             if gameinfo_path.exists(): return gameinfo_path
             return None
@@ -451,6 +480,7 @@ class App(TkinterDnD.Tk):
         if not self.soundscript_path: return
         self.soundscript_path = self.soundscript_path[0]
         if not self.soundscript_path: return
+        self.soundscript_name = os.path.basename(self.soundscript_path) or self.soundscript_path
         with open(self.soundscript_path, 'r', encoding='utf-8') as soundscript_file: soundscript_content = soundscript_file.read()
         print(f"soundscript_content:")
         print(soundscript_content)
@@ -461,6 +491,7 @@ class App(TkinterDnD.Tk):
             if new_items:
                 self.items = new_items
                 self.update_table()
+                self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name}")
         except Exception as e:
             print(f"ERROR READING SOUNDSCRIPT FILE!")
             print(e)
