@@ -101,10 +101,12 @@ class App(TkinterDnD.Tk):
             data=[],
             show_x_scrollbar=False,
             show_y_scrollbar=True,
-            height=1, # ?????
-            width=1, # ?????
+            height = 1, # количество строк, которые будут одновременно видны в таблице (по вертикали)
+            width = 6, # количество столбцов, которые будут одновременно видны (по горизонтали)
+            # align="center",
         )
         self.sheet.pack(fill=tk.BOTH, expand=True)
+        self.sheet["B:E"].align("center") # горизонтальное центрование для некоторых столбцов
 
         # Всякие разрешения для таблицы
         try:
