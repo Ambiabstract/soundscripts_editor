@@ -38,6 +38,7 @@ class App(TkinterDnD.Tk):
         self.resizable(False, False)
         self.items = []  # список словарей в котором хранятся все нужные нам ноды
         self.gameinfo_path = None
+        self.gameinfo_folder = None
         self.project_name = None
         self.soundscript_path = None
         self.soundscript_name = None
@@ -181,7 +182,6 @@ class App(TkinterDnD.Tk):
     # Метод для обновления данных таблицы (содержания), в конце ещё ссылка на апдейт визуала
     def update_table(self):
         data = []
-        print(f"self.items: {self.items}")
         print(f"\n{len(self.items)} ITEMS:")
         for index, item_info in enumerate(self.items, start=1):
             # print(f"index: {index}")
@@ -239,14 +239,17 @@ class App(TkinterDnD.Tk):
         self.redraw_sheet()
 
         # Апдейт статусной надписи
-        self.status_var.set(f"Строк: {len(self.items)}")
+        self.status_var.set(f"Rows count: {len(self.items)}")
 
     # Метод для добавления в таблицу файлов которые были кинуты драг н дропом
     def add_files(self, paths):
         files_count = 0
+        bad_paths = []
         for path in paths:
             path = os.path.abspath(path)
             file_name = os.path.basename(path) or path
+            sounds = []
+            path_rel = None
             
             # Добавляем к именам первое слово из имени проекта в качестве префикса до точки
             file_name = self.project_name.split()[0].lower() + "." + file_name
@@ -270,14 +273,43 @@ class App(TkinterDnD.Tk):
                 file_name = new_file_name
 
             # Добавление пути файла в список звуков
-            sounds = [path]
+            # Функция чтобы преобразовывать абсолютный путь файла в относительный путь
+            try:
+                # Проверяем, начинается ли path с папки с гейминфо
+                if os.path.commonpath([self.gameinfo_folder, os.path.normcase(path)]) == self.gameinfo_folder:
+                    try:
+                        relative = os.path.relpath(path, start=self.gameinfo_folder)
+                        parts = relative.split(os.sep)
             
+                        if parts[0].lower() == "sound":
+                            # Всё, что справа от "sound"
+                            path_rel = "/".join(parts[1:])
+                            sounds.append(path_rel)
+                        else:
+                            bad_paths.append(path)
+                            continue
+                    except ValueError:
+                        bad_paths.append(path)
+                        continue
+                else:
+                    bad_paths.append(path)
+                    continue
+            except Exception:
+                bad_paths.append(path)
+                continue
+
             # Добавление новых нод
             self.items.append({"entry_name": file_name, "channel": DEFAULT_CHANNEL, "soundlevel": DEFAULT_SOUNDLEVEL, "volume": DEFAULT_VOLUME, "pitch": DEFAULT_PITCH, "sounds": sounds})
             files_count += 1
 
         self.update_table()
         self.status_var.set(f"Added {files_count} WAV files." if files_count else f"WAV files not found!")
+        if bad_paths:
+            messagebox.showwarning(
+                "WARNING",
+                f'These files are not from the "{self.project_name}" directory and will not be added!\n\n' +
+                "\n".join(bad_paths)
+            )
 
     # Метод для очистки всех файлов из таблицы
     def clear_all(self):
@@ -361,6 +393,9 @@ class App(TkinterDnD.Tk):
         # Меняем заголовок окна, добавляя имя проекта из гейминфо
         self.project_name = self.get_project_name()
         self.title(f"{ABOUT_TOOL_NAME} | {self.project_name}")
+        
+        # Сохраняем папку проекта
+        self.gameinfo_folder = os.path.dirname(self.gameinfo_path)
         
         # Если таблица не существует - анфризим кнопки, создаём таблицу и настраиваем дрег н дроп
         if not hasattr(self, "sheet"):
