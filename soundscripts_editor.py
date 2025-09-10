@@ -118,10 +118,13 @@ class App(TkinterDnD.Tk):
                     "row_select",
                     "column_select",
                     "drag_select",
-                    "copy",
                     "arrowkeys",
                     "right_click_popup_menu",
-                    # "rc_select",
+                    "rc_select",
+                    # "rc_insert_row",
+                    # "rc_delete_row",
+                    # "rc_delete",
+                    # "copy",
                 )
             )
             # print(f"Bindings enabled!")
@@ -134,10 +137,19 @@ class App(TkinterDnD.Tk):
         for column, width in COLUMN_WIDTHS:
             self.sheet.column_width(column, width)
 
-        # Бинды на всякие приколы контроля таблицы
-        self.sheet.bind("<Double-1>", self.on_double_click)
-        # self.sheet.bind("<<SheetModified>>", self.on_sheet_modified)
+        # Создаём кастомное контекстное меню
+        self.rcm_menu = tk.Menu(self, tearoff=False)
 
+        # Бинды на контроль таблицы и контекстное меню
+        self.sheet.bind("<<SheetModified>>", self.on_sheet_modified)
+        self.sheet.bind("<Double-1>", self.on_double_click)
+        for w in (self.sheet.MT, self.sheet.CH, self.sheet.RI):
+            w.bind("<Button-3>", self.on_right_click, add="+")   # Windows/Linux
+            w.bind("<Button-2>", self.on_right_click, add="+")   # macOS
+        # self.sheet.MT.bind("<Button-3>", self.on_right_click_mt, add="+") # Main Table
+        # self.sheet.CH.bind("<Button-3>", self.on_right_click_ch, add="+") # Column Headers
+        # self.sheet.RI.bind("<Button-3>", self.on_right_click_ri, add="+") # Row Index
+        
     # Метод для настройки правил драг н дропа
     def setup_dnd(self):
         # Всё окно должно принимать драг н дропом именно файлы (не текст и не ссылки)*
@@ -525,12 +537,37 @@ class App(TkinterDnD.Tk):
         self.add_files(paths)
 
     # Метод для дабл клика ЛКМ по любому месту в таблице
+    def on_sheet_modified(self, event):
+        print(f"Sheet modified!")
+        self.soundscript_saved = False
+    
+    # Метод для дабл клика ЛКМ по любому месту в таблице - быстрый вход в редактирование одной конкретной ячейки
     def on_double_click(self, event=None):
         print(f"Double click!")
+        print(f"self.sheet.get_currently_selected(): {self.sheet.get_currently_selected()}")
         sel = self.sheet.get_currently_selected()
-        print(f"sel: {sel}")
-        row = sel.get("row")
-        print(f"row: {row}")
+        # print(f"sel: {sel}")
+        # row = sel.get("row")
+        # print(f"row: {row}")
+    
+    # Метод для контекстного меню таблицы на ПКМ - в зависимости от контекста клика показываются разные пункты
+    def on_right_click(self, event):
+        print(f"Контекстное меню!")
+        print(f"self.sheet.get_currently_selected(): {self.sheet.get_currently_selected()}")
+        
+        self.rcm_menu.delete(0, "end")
+        
+        # добавляем то, что вам нужно из стандартного набора (пример)
+        self.rcm_menu.add_command(label="Copy", command=lambda: self.sheet.copy(create_selections=True))
+        
+        self.rcm_menu.add_separator()
+        self.rcm_menu.add_command(label="Мой пункт", command=lambda: print("Мой пункт для колонки"))
+
+        self.rcm_menu.tk_popup(event.x_root, event.y_root)
+        # sel = self.sheet.get_currently_selected()
+        # print(f"sel: {sel}")
+        # row = sel.get("row")
+        # print(f"row: {row}")
 
     # Метод для загрузки кэша из файла
     def load_cache(self) -> str | None:
