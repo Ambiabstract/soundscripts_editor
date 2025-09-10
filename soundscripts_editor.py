@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.0.7"
+ABOUT_TOOL_VERSION = "0.0.8"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -43,6 +43,7 @@ class App(TkinterDnD.Tk):
         self.soundscript_path = None
         self.soundscript_name = None
         self.soundscript_saved = False
+        self.add_proj_name_to_entryname = False
 
         # Строим визуалочку окна, тулбара, нижней строчки
         self.build_main_ui()
@@ -283,8 +284,9 @@ class App(TkinterDnD.Tk):
             path_rel = None
             
             # Добавляем к именам первое слово из имени проекта в качестве префикса до точки
-            file_name = self.project_name.split()[0].lower() + "." + file_name
-            # print(f"self.soundscript_name: {self.soundscript_name}")
+            if self.add_proj_name_to_entryname:
+                file_name = self.project_name.split()[0].lower() + "." + file_name
+                # print(f"self.soundscript_name: {self.soundscript_name}")
             
             # Фиксим имена
             file_name = file_name.replace(".wav", "").replace(".WAV", "")
@@ -552,16 +554,64 @@ class App(TkinterDnD.Tk):
     
     # Метод для контекстного меню таблицы на ПКМ - в зависимости от контекста клика показываются разные пункты
     def on_right_click(self, event):
+        print(f" ")
         print(f"Контекстное меню!")
-        print(f"self.sheet.get_currently_selected(): {self.sheet.get_currently_selected()}")
+        select = self.sheet.get_currently_selected()
+        print(f"select: {select}")
+        if not select: return
+        row, column, type_, box, iid, fill_iid = select
+        from_row, from_column, upto_row, upto_column = box
+        # Selected(row=1, column=2, type_='cells', box=Box_nt(from_r=1, from_c=2, upto_r=2, upto_c=3), iid=45, fill_iid=1)
+        print(f"\trow: {row}")
+        print(f"\tcolumn: {column}")
+        print(f"\ttype_: {type_}")
+        # print(f"\tbox: {box}")
+        # print(f"\tiid: {iid}")
+        # print(f"\tfill_iid: {fill_iid}")
+        print(f"\tfrom_row: {from_row}")
+        print(f"\tupto_row: {upto_row}")
+        print(f"\tfrom_column: {from_column}")
+        print(f"\tupto_column: {upto_column}")
         
+        multiselect_rows = not (upto_row - 1 == from_row)
+        multiselect_columns = not (upto_column - 1 == from_column)
+        multiselect_both = multiselect_rows and multiselect_columns
+        multiselect_check = multiselect_rows or multiselect_columns
+        print(f"multiselect_rows: {multiselect_rows}")
+        print(f"multiselect_columns: {multiselect_columns}")
+        print(f"multiselect_both: {multiselect_both}")
+        print(f"multiselect_check: {multiselect_check}")
+        
+        column_channel_selected = (from_column <= 1 < upto_column)
+        column_soundlevel_selected = (from_column <= 2 < upto_column)
+        column_volume_selected = (from_column <= 3 < upto_column)
+        column_pitch_selected = (from_column <= 4 < upto_column)
+        print(f"column_channel_selected: {column_channel_selected}")
+        print(f"column_soundlevel_selected: {column_soundlevel_selected}")
+        print(f"column_volume_selected: {column_volume_selected}")
+        print(f"column_pitch_selected: {column_pitch_selected}")
+
         self.rcm_menu.delete(0, "end")
         
-        # добавляем то, что вам нужно из стандартного набора (пример)
-        self.rcm_menu.add_command(label="Copy", command=lambda: self.sheet.copy(create_selections=True))
+        if type_ == "cells" and not multiselect_check: self.rcm_menu.add_command(label="Edit this Cell", command=lambda: print("Edit this Cell"))
+        
+        if type_ == "cells" and column_channel_selected: self.rcm_menu.add_command(label="Edit Channel for selection", command=lambda: print("Edit Channels"))
+        if type_ == "cells" and column_soundlevel_selected: self.rcm_menu.add_command(label="Edit Soundlevel for selection", command=lambda: print("Edit Soundlevel"))
+        if type_ == "cells" and column_volume_selected: self.rcm_menu.add_command(label="Edit Volume for selection", command=lambda: print("Edit Volume"))
+        if type_ == "cells" and column_pitch_selected: self.rcm_menu.add_command(label="Edit Pitch for selection", command=lambda: print("Edit Pitch"))
+        
+        if type_ in ("cells", "rows") and not multiselect_rows: self.rcm_menu.add_command(label="Add sounds to this Row (rndwave)", command=lambda: print("Add sounds to this Row (rndwave)"))
+        
+        if type_ == "columns" and column == 1: self.rcm_menu.add_command(label="Set Channel for All", command=lambda: print("Set all Channels"))
+        if type_ == "columns" and column == 2: self.rcm_menu.add_command(label="Set Soundlevel for All", command=lambda: print("Set all Soundlevels"))
+        if type_ == "columns" and column == 3: self.rcm_menu.add_command(label="Set Volume for All", command=lambda: print("Set all Volumes"))
+        if type_ == "columns" and column == 4: self.rcm_menu.add_command(label="Set Pitch for All", command=lambda: print("Set all Pitches"))
         
         self.rcm_menu.add_separator()
-        self.rcm_menu.add_command(label="Мой пункт", command=lambda: print("Мой пункт для колонки"))
+        
+        if type_ == "cells" and column in (1, 2, 3, 4): self.rcm_menu.add_command(label="Clear Cell(s)", command=lambda: print("Clear Cell"))
+        if type_ in ("cells", "rows"): self.rcm_menu.add_command(label="Delete Row(s)", command=lambda: print("Delete Row"))
+        if type_ == "columns" and column in (1, 2, 3, 4): self.rcm_menu.add_command(label="Clear All", command=lambda: print("Clear All"))
 
         self.rcm_menu.tk_popup(event.x_root, event.y_root)
         # sel = self.sheet.get_currently_selected()
