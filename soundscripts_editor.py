@@ -424,7 +424,7 @@ class App(TkinterDnD.Tk):
     # Метод для сетапа гейминфо
     def set_gameinfo(self):
         # тут логика чтобы выбрать гейминфо через браузер
-        self.gameinfo_path = self.open_files_dialog(title="Open Gameinfo.txt", filter_str="Text (gameinfo.txt);;All (*)", multi=False)[0]
+        self.gameinfo_path = Path(self.open_files_dialog(title="Open Gameinfo.txt", filter_str="Text (gameinfo.txt);;All (*)", multi=False)[0])
         # print(f"self.gameinfo_path SET GAMEINFO: {self.gameinfo_path}")
 
         # Если гейминфо выбран и назначен удачно то идём дальше 
@@ -520,7 +520,7 @@ class App(TkinterDnD.Tk):
     # Метод для сохранения кэша в файл
     def save_cache(self) -> bool:
         json_dumps_content = [
-            {"gameinfo_path": self.gameinfo_path}
+            {"gameinfo_path": str(self.gameinfo_path)}
         ]
         try:
             Path(CACHE_PATH).write_text(json.dumps(json_dumps_content, indent=2), encoding="utf-8")
@@ -528,7 +528,9 @@ class App(TkinterDnD.Tk):
             # print(f"Content:")
             # print(f"{json_dumps_content}")
             return True
-        except Exception:
+        except Exception as e:
+            print(f"ERROR SAVING CACHE:")
+            print(e)
             return False
 
     # Функция для дампа содержания саундскрипта из итемов
