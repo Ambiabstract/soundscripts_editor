@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.0.5"
+ABOUT_TOOL_VERSION = "0.0.6"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -42,6 +42,7 @@ class App(TkinterDnD.Tk):
         self.project_name = None
         self.soundscript_path = None
         self.soundscript_name = None
+        self.soundscript_saved = False
 
         # Строим визуалочку окна, тулбара, нижней строчки
         self.build_main_ui()
@@ -59,7 +60,7 @@ class App(TkinterDnD.Tk):
         self.toolbar.pack(side=tk.TOP, fill=tk.X)
 
         # Кнопки тулбара
-        self.btn_new_ss = ttk.Button(self.toolbar, text="New Soundscript", command=self.about_window, state="disabled")
+        self.btn_new_ss = ttk.Button(self.toolbar, text="New Soundscript", command=self.new_soundscript, state="disabled")
         self.btn_new_ss.pack(
             side=tk.LEFT, padx=(0, 0)
         )
@@ -322,6 +323,7 @@ class App(TkinterDnD.Tk):
 
         self.update_table()
         self.status_var.set(f"Added {files_count} WAV files." if files_count else f"WAV files not found!")
+        self.soundscript_saved = False
         if bad_paths:
             messagebox.showwarning(
                 "WARNING",
@@ -342,6 +344,15 @@ class App(TkinterDnD.Tk):
         about_tool_full = ABOUT_TOOL_NAME + "\n\n" + ABOUT_TOOL_DESCRIPTION + "\n\n" + ABOUT_TOOL_AUTHOR + "\n" + ABOUT_TOOL_REQUESTED + "\n\n" + ABOUT_TOOL_LINK + "\n" + ABOUT_TOOL_DISCORD
         messagebox.showinfo("About", about_tool_full)
 
+    # Метод для нового саундскрипта
+    def new_soundscript(self):
+        if not self.items: return
+        if not self.soundscript_saved:
+            if not messagebox.askokcancel("WARNING", "Are you sure you want to create a new script?\nUnsaved progress will be lost!"): return
+        self.items = []
+        self.update_table()
+        self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - New Soundscript")
+    
     # Универсальный метод для файлового браузера на открытие файлов
     def open_files_dialog(self, title, filter_str="All Files (*.*)", start_dir=".", multi=True):
         # print(f"open_files_dialog start")
@@ -583,10 +594,15 @@ class App(TkinterDnD.Tk):
         print(soundscript_content)
         with open(ss_path, "w", encoding="utf-8") as f:
             f.write(soundscript_content)
+        self.soundscript_name = os.path.basename(ss_path)
+        self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name}")
+        self.soundscript_saved = True
         return ss_path
     
     # Функция для открытия саундскрипта
     def open_soundscript(self):
+        if self.items and not self.soundscript_saved:
+            if not messagebox.askokcancel("WARNING", "Are you sure you want to open a script?\nUnsaved progress will be lost!"): return
         self.gameinfo_path = str(self.gameinfo_path)
         scripts_folder = os.path.dirname(self.gameinfo_path) + "/scripts"
         self.soundscript_path = self.open_files_dialog(title="Open soundscript", filter_str="Text (*.txt);;All (*)", start_dir = scripts_folder, multi=False)
@@ -605,6 +621,7 @@ class App(TkinterDnD.Tk):
                 self.items = new_items
                 self.update_table()
                 self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name}")
+                self.soundscript_saved = True
         except Exception as e:
             print(f"ERROR READING SOUNDSCRIPT FILE!")
             print(e)
