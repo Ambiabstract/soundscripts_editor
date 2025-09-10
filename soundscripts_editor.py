@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.0.4"
+ABOUT_TOOL_VERSION = "0.0.5"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -71,7 +71,7 @@ class App(TkinterDnD.Tk):
         self.btn_save_ss.pack(
             side=tk.LEFT, padx=(0, 0)
         )
-        self.btn_add_sounds = ttk.Button(self.toolbar, text="Add Sounds", command=self.about_window, state="disabled")
+        self.btn_add_sounds = ttk.Button(self.toolbar, text="Add Sounds", command=self.add_sounds_button, state="disabled")
         self.btn_add_sounds.pack(
             side=tk.LEFT, padx=(0, 0)
         )
@@ -241,8 +241,26 @@ class App(TkinterDnD.Tk):
         # Апдейт статусной надписи
         self.status_var.set(f"Rows count: {len(self.items)}")
 
-    # Метод для добавления в таблицу файлов которые были кинуты драг н дропом
+    # Метод для добавления в таблицу файлов которые были кинуты драг н дропом или через браузер файлов
+    def add_sounds_button(self):
+        print(f"add_sounds_button start")
+        # self.soundscript_path = self.open_files_dialog(title="Open soundscript", filter_str="Text (*.txt);;All (*)", start_dir = scripts_folder, multi=False)
+        sound_folder = os.path.dirname(self.gameinfo_path) + "/sound"
+        print(f"sound_folder: {sound_folder}")
+        sound_files = self.open_files_dialog(title="Open WAV files", filter_str="Sounds (*.wav);;All (*)", start_dir = sound_folder, multi=True)
+        print(f"sound_files: {sound_files}")
+        if not sound_files: return
+        self.add_files(sound_files)
+
+    # Метод для добавления в таблицу файлов которые были кинуты драг н дропом или через браузер файлов
     def add_files(self, paths):
+        # Добавляем только WAV файлы
+        wav_files = [p for p in paths if p.lower().endswith(".wav")]
+        if not wav_files:
+            messagebox.showwarning("Warning", f"No WAV files found!")
+            return
+        paths = wav_files
+        
         files_count = 0
         bad_paths = []
         for path in paths:
@@ -486,11 +504,7 @@ class App(TkinterDnD.Tk):
     # Метод который происходит при драг н дропе файлов на окно или таблицу
     def on_drop(self, event):
         paths = self.tk.splitlist(event.data)
-        wav_files = [p for p in paths if p.lower().endswith(".wav")] # нам нужны только wav файлы
-        if wav_files:
-            self.add_files(wav_files)
-        else:
-            messagebox.showwarning("Warning", f"No WAV files found!")
+        self.add_files(paths)
 
     # Метод для дабл клика ЛКМ по любому месту в таблице
     def on_double_click(self, event=None):
