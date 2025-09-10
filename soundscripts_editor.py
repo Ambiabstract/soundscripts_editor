@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.0.6"
+ABOUT_TOOL_VERSION = "0.0.7"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -64,11 +64,11 @@ class App(TkinterDnD.Tk):
         self.btn_new_ss.pack(
             side=tk.LEFT, padx=(0, 0)
         )
-        self.btn_open_ss = ttk.Button(self.toolbar, text="Open Soundscript", command=self.open_soundscript, state="disabled")
+        self.btn_open_ss = ttk.Button(self.toolbar, text="Open Soundscript", command=self.open_soundscript_dialog, state="disabled")
         self.btn_open_ss.pack(
             side=tk.LEFT, padx=(0, 0)
         )
-        self.btn_save_ss = ttk.Button(self.toolbar, text="Save Soundscript", command=self.save_soundscript, state="disabled")
+        self.btn_save_ss = ttk.Button(self.toolbar, text="Save Soundscript As", command=self.save_soundscript, state="disabled")
         self.btn_save_ss.pack(
             side=tk.LEFT, padx=(0, 0)
         )
@@ -515,6 +515,13 @@ class App(TkinterDnD.Tk):
     # Метод который происходит при драг н дропе файлов на окно или таблицу
     def on_drop(self, event):
         paths = self.tk.splitlist(event.data)
+        if ".txt" in paths[0]: 
+            if self.items and not self.soundscript_saved:
+                if not messagebox.askokcancel("WARNING", "Are you sure you want to open a script?\nUnsaved progress will be lost!"): return
+            self.soundscript_path = paths[0]
+            print(f"self.soundscript_path: {self.soundscript_path}")
+            self.open_soundscript()
+            return
         self.add_files(paths)
 
     # Метод для дабл клика ЛКМ по любому месту в таблице
@@ -600,7 +607,7 @@ class App(TkinterDnD.Tk):
         return ss_path
     
     # Функция для открытия саундскрипта
-    def open_soundscript(self):
+    def open_soundscript_dialog(self):
         if self.items and not self.soundscript_saved:
             if not messagebox.askokcancel("WARNING", "Are you sure you want to open a script?\nUnsaved progress will be lost!"): return
         self.gameinfo_path = str(self.gameinfo_path)
@@ -608,6 +615,10 @@ class App(TkinterDnD.Tk):
         self.soundscript_path = self.open_files_dialog(title="Open soundscript", filter_str="Text (*.txt);;All (*)", start_dir = scripts_folder, multi=False)
         if not self.soundscript_path: return
         self.soundscript_path = self.soundscript_path[0]
+        self.open_soundscript()
+        
+    # Функция для открытия саундскрипта
+    def open_soundscript(self):
         if not self.soundscript_path: return
         self.soundscript_name = os.path.basename(self.soundscript_path) or self.soundscript_path
         with open(self.soundscript_path, 'r', encoding='utf-8') as soundscript_file: soundscript_content = soundscript_file.read()
