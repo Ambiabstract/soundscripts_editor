@@ -1,6 +1,6 @@
 import os
 import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+from tkinter import ttk, messagebox, filedialog, simpledialog
 from tkinterdnd2 import DND_FILES, TkinterDnD
 from tksheet import Sheet
 import json
@@ -573,6 +573,11 @@ class App(TkinterDnD.Tk):
         print(f"\tfrom_column: {from_column}")
         print(f"\tupto_column: {upto_column}")
         
+        selected_rows = list(range(from_row, upto_row))
+        # print(f"selected_rows:")
+        # for index in selected_rows:
+            # print(f"index: {index}")
+        
         multiselect_rows = not (upto_row - 1 == from_row)
         multiselect_columns = not (upto_column - 1 == from_column)
         multiselect_both = multiselect_rows and multiselect_columns
@@ -593,25 +598,25 @@ class App(TkinterDnD.Tk):
 
         self.rcm_menu.delete(0, "end")
         
-        if type_ == "cells" and not multiselect_check: self.rcm_menu.add_command(label="Edit this Cell", command=lambda: print("Edit this Cell"))
+        if type_ == "cells" and not multiselect_check: self.rcm_menu.add_command(label="Edit this Cell", command=lambda: self.placeholder_message())
         
-        if type_ == "cells" and column_channel_selected: self.rcm_menu.add_command(label="Edit Channel for selection", command=lambda: print("Edit Channels"))
-        if type_ == "cells" and column_soundlevel_selected: self.rcm_menu.add_command(label="Edit Soundlevel for selection", command=lambda: print("Edit Soundlevel"))
-        if type_ == "cells" and column_volume_selected: self.rcm_menu.add_command(label="Edit Volume for selection", command=lambda: print("Edit Volume"))
-        if type_ == "cells" and column_pitch_selected: self.rcm_menu.add_command(label="Edit Pitch for selection", command=lambda: print("Edit Pitch"))
+        if type_ == "cells" and column_channel_selected: self.rcm_menu.add_command(label="Set Channel for selection", command=lambda: self.edit_channels(selected_rows))
+        if type_ == "cells" and column_soundlevel_selected: self.rcm_menu.add_command(label="Set Soundlevel for selection", command=lambda: self.placeholder_message())
+        if type_ == "cells" and column_volume_selected: self.rcm_menu.add_command(label="Set Volume for selection", command=lambda: self.placeholder_message())
+        if type_ == "cells" and column_pitch_selected: self.rcm_menu.add_command(label="Set Pitch for selection", command=lambda: self.placeholder_message())
         
-        if type_ in ("cells", "rows") and not multiselect_rows: self.rcm_menu.add_command(label="Add sounds to this Row (rndwave)", command=lambda: print("Add sounds to this Row (rndwave)"))
+        if type_ in ("cells", "rows") and not multiselect_rows: self.rcm_menu.add_command(label="Add sounds to this Row (rndwave)", command=lambda: self.placeholder_message())
         
-        if type_ == "columns" and column == 1: self.rcm_menu.add_command(label="Set Channel for All", command=lambda: print("Set all Channels"))
-        if type_ == "columns" and column == 2: self.rcm_menu.add_command(label="Set Soundlevel for All", command=lambda: print("Set all Soundlevels"))
-        if type_ == "columns" and column == 3: self.rcm_menu.add_command(label="Set Volume for All", command=lambda: print("Set all Volumes"))
-        if type_ == "columns" and column == 4: self.rcm_menu.add_command(label="Set Pitch for All", command=lambda: print("Set all Pitches"))
+        if type_ == "columns" and column == 1: self.rcm_menu.add_command(label="Set Channel for All", command=lambda: self.placeholder_message())
+        if type_ == "columns" and column == 2: self.rcm_menu.add_command(label="Set Soundlevel for All", command=lambda: self.placeholder_message())
+        if type_ == "columns" and column == 3: self.rcm_menu.add_command(label="Set Volume for All", command=lambda: self.placeholder_message())
+        if type_ == "columns" and column == 4: self.rcm_menu.add_command(label="Set Pitch for All", command=lambda: self.placeholder_message())
         
         self.rcm_menu.add_separator()
         
-        if type_ == "cells" and column in (1, 2, 3, 4): self.rcm_menu.add_command(label="Clear Cell(s)", command=lambda: print("Clear Cell"))
-        if type_ in ("cells", "rows"): self.rcm_menu.add_command(label="Delete Row(s)", command=lambda: print("Delete Row"))
-        if type_ == "columns" and column in (1, 2, 3, 4): self.rcm_menu.add_command(label="Clear All", command=lambda: print("Clear All"))
+        if type_ == "cells" and column in (1, 2, 3, 4): self.rcm_menu.add_command(label="Clear Cell(s)", command=lambda: self.placeholder_message())
+        if type_ in ("cells", "rows"): self.rcm_menu.add_command(label="Delete Row(s)", command=lambda: self.placeholder_message())
+        if type_ == "columns" and column in (1, 2, 3, 4): self.rcm_menu.add_command(label="Clear All", command=lambda: self.placeholder_message())
 
         self.rcm_menu.tk_popup(event.x_root, event.y_root)
         # sel = self.sheet.get_currently_selected()
@@ -619,6 +624,27 @@ class App(TkinterDnD.Tk):
         # row = sel.get("row")
         # print(f"row: {row}")
 
+    # Заглушечное окно
+    def placeholder_message(self):
+        messagebox.showinfo("Work in progress", "Сорян Русик, эта фича ещё не работает ¯\_(ツ)_/¯")
+
+    # Метод для редактирования каналов одной или нескольких нод
+    def edit_channels(self, selected_rows):
+        print(f" ")
+        print(f"EDIT CHANNELS START")
+        print(f"selected_rows: {selected_rows}")
+        print(f"self.items: {self.items}")
+        
+        # channel_value = "my_channel"
+        channel_value = simpledialog.askstring("Set Channel", "Enter a new channel value.\n\nExamples:\nCHAN_AUTO\nCHAN_WEAPON\nCHAN_VOICE\nCHAN_ITEM\nCHAN_BODY\nCHAN_STREAM\nCHAN_REPLACE\nCHAN_STATIC\nCHAN_VOICE_BASE\n")
+        if not channel_value: return
+        for idx in selected_rows:
+            self.items[idx]["channel"] = channel_value
+
+        self.update_table()
+        self.status_var.set(f"Channel changed for {len(selected_rows)} rows.")
+        self.soundscript_saved = False
+    
     # Метод для загрузки кэша из файла
     def load_cache(self) -> str | None:
         cache_path = Path(CACHE_PATH)
