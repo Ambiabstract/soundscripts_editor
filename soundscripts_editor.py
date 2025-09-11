@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.1.0"
+ABOUT_TOOL_VERSION = "0.1.1"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -593,10 +593,12 @@ class App(TkinterDnD.Tk):
         print(f"multiselect_check: {multiselect_check}")
         '''
         
+        column_name_selected = (from_column <= 0 < upto_column)
         column_channel_selected = (from_column <= 1 < upto_column)
         column_soundlevel_selected = (from_column <= 2 < upto_column)
         column_volume_selected = (from_column <= 3 < upto_column)
         column_pitch_selected = (from_column <= 4 < upto_column)
+        column_sounds_selected = (from_column <= 5 < upto_column)
         '''
         print(f"column_channel_selected: {column_channel_selected}")
         print(f"column_soundlevel_selected: {column_soundlevel_selected}")
@@ -604,7 +606,7 @@ class App(TkinterDnD.Tk):
         print(f"column_pitch_selected: {column_pitch_selected}")
         '''
         
-        selection_info = {"row": row, "column": column, "type_": type_, "selected_rows": selected_rows, "multiselect_rows": multiselect_rows, "multiselect_columns": multiselect_columns, "multiselect_both": multiselect_both, "multiselect_check": multiselect_check, "column_channel_selected": column_channel_selected, "column_soundlevel_selected": column_soundlevel_selected, "column_volume_selected": column_volume_selected, "column_pitch_selected": column_pitch_selected}
+        selection_info = {"row": row, "column": column, "type_": type_, "selected_rows": selected_rows, "multiselect_rows": multiselect_rows, "multiselect_columns": multiselect_columns, "multiselect_both": multiselect_both, "multiselect_check": multiselect_check, "column_name_selected": column_name_selected, "column_channel_selected": column_channel_selected, "column_soundlevel_selected": column_soundlevel_selected, "column_volume_selected": column_volume_selected, "column_pitch_selected": column_pitch_selected, "column_sounds_selected": column_sounds_selected}
         
         return selection_info
     
@@ -615,11 +617,11 @@ class App(TkinterDnD.Tk):
         # Получаем всю необходимую инфу о текущем выделении
         selection_info = self.get_selection_info()
         if not selection_info: return
+        row = selection_info["row"]
         type_ = selection_info["type_"]
         selected_rows = selection_info["selected_rows"]
-        multiselect_rows = selection_info["multiselect_rows"]
         multiselect_columns = selection_info["multiselect_columns"]
-        multiselect_check = selection_info["multiselect_check"]
+        column_name_selected = selection_info["column_name_selected"]
         column_channel_selected = selection_info["column_channel_selected"]
         column_soundlevel_selected = selection_info["column_soundlevel_selected"]
         column_volume_selected = selection_info["column_volume_selected"]
@@ -627,6 +629,7 @@ class App(TkinterDnD.Tk):
         
         # Одна ячейка
         if type_ == "cells":
+            if column_name_selected: self.edit_entry_name(row)
             if column_channel_selected: self.edit_csvp(selected_rows, "channel")
             if column_soundlevel_selected: self.edit_csvp(selected_rows, "soundlevel")
             if column_volume_selected: self.edit_csvp(selected_rows, "volume")
@@ -647,11 +650,13 @@ class App(TkinterDnD.Tk):
         # Получаем всю необходимую инфу о текущем выделении
         selection_info = self.get_selection_info()
         if not selection_info: return        
+        row = selection_info["row"]
         column = selection_info["column"]
         type_ = selection_info["type_"]
         selected_rows = selection_info["selected_rows"]
         multiselect_rows = selection_info["multiselect_rows"]
         multiselect_check = selection_info["multiselect_check"]
+        column_name_selected = selection_info["column_name_selected"]
         column_channel_selected = selection_info["column_channel_selected"]
         column_soundlevel_selected = selection_info["column_soundlevel_selected"]
         column_volume_selected = selection_info["column_volume_selected"]
@@ -662,6 +667,8 @@ class App(TkinterDnD.Tk):
         
         # Скорее всего эта фича не нужна
         # if type_ == "cells" and not multiselect_check: self.rcm_menu.add_command(label="Edit this Cell", command=lambda: self.placeholder_message())
+        
+        if type_ == "cells" and not multiselect_check and column_name_selected: self.rcm_menu.add_command(label="Edit entry.name", command=lambda: self.edit_entry_name(row))
         
         if type_ == "cells" and column_channel_selected: self.rcm_menu.add_command(label="Set Channel for selection", command=lambda: self.edit_csvp(selected_rows, "channel"))
         if type_ == "cells" and column_soundlevel_selected: self.rcm_menu.add_command(label="Set Soundlevel for selection", command=lambda: self.edit_csvp(selected_rows, "soundlevel"))
@@ -739,6 +746,29 @@ class App(TkinterDnD.Tk):
 
         self.update_table()
         self.status_var.set(f"{len(selected_rows)} rows changed.")
+        self.soundscript_saved = False
+    
+    # Метод для редактирования имени ноды
+    def edit_entry_name(self, row):
+        print(f" ")
+        print(f"edit_entry_name!")
+        print(f"row: {row}")
+        
+        current_entry_name = self.items[row]["entry_name"]
+        print(f"current_entry_name: {current_entry_name}")
+        
+        new_entry_name = simpledialog.askstring(
+            "New name",
+            "Please enter a new entry.name:\t\t\t\n",
+            initialvalue=current_entry_name
+        )
+        if not new_entry_name or current_entry_name == new_entry_name: return
+        
+        # Новое значение имени, но нужно добавить ещё проверку на одноимённость
+        self.items[row]["entry_name"] = new_entry_name
+        
+        self.update_table()
+        self.status_var.set(f"Name changed!")
         self.soundscript_saved = False
     
     # Метод для загрузки кэша из файла
