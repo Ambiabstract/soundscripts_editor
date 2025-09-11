@@ -9,22 +9,22 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.0.9"
+ABOUT_TOOL_VERSION = "0.1.0"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
 ABOUT_TOOL_REQUESTED = "Requested by Aptekarr."
 ABOUT_TOOL_LINK = "Github: https://github.com/Ambiabstract/soundscripts_editor"
 ABOUT_TOOL_DISCORD = "Discord: @Ambiabstract"
+CACHE_PATH = "soundscripts_editor_cache.json"
 WINDOW_SIZE = "1024x720"
 COLUMN_WIDTHS = [(0, 200), (1, 100), (2, 100), (3, 100), (4, 100), (5, 385)]
 HEADERS = ["entry.name", "channel", "soundlevel", "volume", "pitch", "sounds"]
 BASE_ROW_HEIGHT = 22
 DEFAULT_CHANNEL = "CHAN_AUTO"
-DEFAULT_SOUNDLEVEL = "SNDLVL_NORM"
-DEFAULT_VOLUME = "VOL_NORM"
+DEFAULT_SOUNDLEVEL = "SNDLVL_IDLE"
+DEFAULT_VOLUME = "1"
 DEFAULT_PITCH = "PITCH_NORM"
-CACHE_PATH = "soundscripts_editor_cache.json"
 CHANNELS_LIST = [
     "CHAN_AUTO", "CHAN_WEAPON", "CHAN_VOICE", "CHAN_VOICE2", "CHAN_ITEM", "CHAN_BODY", "CHAN_STREAM", "CHAN_REPLACE", "CHAN_STATIC", "CHAN_VOICE_BASE"
 ]
@@ -35,6 +35,8 @@ SNDLVLS_LIST  = [
             "SNDLVL_90dB", "SNDLVL_95dB", "SNDLVL_100dB", "SNDLVL_105dB", "SNDLVL_110dB", "SNDLVL_120dB",
             "SNDLVL_130dB", "SNDLVL_GUNFIRE", "SNDLVL_140dB", "SNDLVL_150dB", "SNDLVL_180dB"
 ]
+VOLUME_LIST = ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1", "0.1, 0.9", "0.2, 0.8", "0.3, 0.7", "0.4, 0.6", "0.5, 1"]
+PITCH_LIST = ["10", "20", "30", "40", "50", "60", "70", "80", "90", "PITCH_LOW", "PITCH_NORM", "100", "110", "PITCH_HIGH", "120", "130", "140", "150", "160", "170", "180", "190", "200", "210", "220", "230", "240", "250", "95, 100", "100, 110"]
 
 # Класс приложения
 class App(TkinterDnD.Tk):
@@ -553,25 +555,16 @@ class App(TkinterDnD.Tk):
         print(f"Sheet modified!")
         self.soundscript_saved = False
     
-    # Метод для дабл клика ЛКМ по любому месту в таблице - быстрый вход в редактирование одной конкретной ячейки
-    def on_double_click(self, event=None):
-        print(f"Double click!")
-        print(f"self.sheet.get_currently_selected(): {self.sheet.get_currently_selected()}")
-        sel = self.sheet.get_currently_selected()
-        # print(f"sel: {sel}")
-        # row = sel.get("row")
-        # print(f"row: {row}")
-    
-    # Метод для контекстного меню таблицы на ПКМ - в зависимости от контекста клика показываются разные пункты
-    def on_right_click(self, event):
+    # Метод для получения информации при селекте чего-либо в таблице
+    def get_selection_info(self, event=None):
         print(f" ")
-        print(f"Контекстное меню!")
+        print(f"get_selection_info!")
         select = self.sheet.get_currently_selected()
         print(f"select: {select}")
         if not select: return
         row, column, type_, box, iid, fill_iid = select
         from_row, from_column, upto_row, upto_column = box
-        # Selected(row=1, column=2, type_='cells', box=Box_nt(from_r=1, from_c=2, upto_r=2, upto_c=3), iid=45, fill_iid=1)
+        '''
         print(f"\trow: {row}")
         print(f"\tcolumn: {column}")
         print(f"\ttype_: {type_}")
@@ -582,45 +575,105 @@ class App(TkinterDnD.Tk):
         print(f"\tupto_row: {upto_row}")
         print(f"\tfrom_column: {from_column}")
         print(f"\tupto_column: {upto_column}")
-        
+        '''
         selected_rows = list(range(from_row, upto_row))
+        '''
         # print(f"selected_rows:")
         # for index in selected_rows:
             # print(f"index: {index}")
-        
+        '''
         multiselect_rows = not (upto_row - 1 == from_row)
         multiselect_columns = not (upto_column - 1 == from_column)
         multiselect_both = multiselect_rows and multiselect_columns
         multiselect_check = multiselect_rows or multiselect_columns
+        '''
         print(f"multiselect_rows: {multiselect_rows}")
         print(f"multiselect_columns: {multiselect_columns}")
         print(f"multiselect_both: {multiselect_both}")
         print(f"multiselect_check: {multiselect_check}")
+        '''
         
         column_channel_selected = (from_column <= 1 < upto_column)
         column_soundlevel_selected = (from_column <= 2 < upto_column)
         column_volume_selected = (from_column <= 3 < upto_column)
         column_pitch_selected = (from_column <= 4 < upto_column)
+        '''
         print(f"column_channel_selected: {column_channel_selected}")
         print(f"column_soundlevel_selected: {column_soundlevel_selected}")
         print(f"column_volume_selected: {column_volume_selected}")
         print(f"column_pitch_selected: {column_pitch_selected}")
-
+        '''
+        
+        selection_info = {"row": row, "column": column, "type_": type_, "selected_rows": selected_rows, "multiselect_rows": multiselect_rows, "multiselect_columns": multiselect_columns, "multiselect_both": multiselect_both, "multiselect_check": multiselect_check, "column_channel_selected": column_channel_selected, "column_soundlevel_selected": column_soundlevel_selected, "column_volume_selected": column_volume_selected, "column_pitch_selected": column_pitch_selected}
+        
+        return selection_info
+    
+    # Дабл-клик ЛКМ: быстрый вход в редактирование одной ячейки или всех ячеек одной колонки
+    def on_double_click(self, event=None):
+        print(f"Double click!")
+        
+        # Получаем всю необходимую инфу о текущем выделении
+        selection_info = self.get_selection_info()
+        if not selection_info: return
+        type_ = selection_info["type_"]
+        selected_rows = selection_info["selected_rows"]
+        multiselect_rows = selection_info["multiselect_rows"]
+        multiselect_columns = selection_info["multiselect_columns"]
+        multiselect_check = selection_info["multiselect_check"]
+        column_channel_selected = selection_info["column_channel_selected"]
+        column_soundlevel_selected = selection_info["column_soundlevel_selected"]
+        column_volume_selected = selection_info["column_volume_selected"]
+        column_pitch_selected = selection_info["column_pitch_selected"]
+        
+        # Одна ячейка
+        if type_ == "cells":
+            if column_channel_selected: self.edit_csvp(selected_rows, "channel")
+            if column_soundlevel_selected: self.edit_csvp(selected_rows, "soundlevel")
+            if column_volume_selected: self.edit_csvp(selected_rows, "volume")
+            if column_pitch_selected: self.edit_csvp(selected_rows, "pitch")
+        
+        # Все ячейки одной колонки
+        if type_ == "columns" and not multiselect_columns:
+            if column_channel_selected: self.edit_csvp(selected_rows, "channel")
+            if column_soundlevel_selected: self.edit_csvp(selected_rows, "soundlevel")
+            if column_volume_selected: self.edit_csvp(selected_rows, "volume")
+            if column_pitch_selected: self.edit_csvp(selected_rows, "pitch")
+        
+    # Метод для контекстного меню таблицы на ПКМ - в зависимости от контекста клика показываются разные пункты
+    def on_right_click(self, event):
+        print(f" ")
+        print(f"Контекстное меню!")
+        
+        # Получаем всю необходимую инфу о текущем выделении
+        selection_info = self.get_selection_info()
+        if not selection_info: return        
+        column = selection_info["column"]
+        type_ = selection_info["type_"]
+        selected_rows = selection_info["selected_rows"]
+        multiselect_rows = selection_info["multiselect_rows"]
+        multiselect_check = selection_info["multiselect_check"]
+        column_channel_selected = selection_info["column_channel_selected"]
+        column_soundlevel_selected = selection_info["column_soundlevel_selected"]
+        column_volume_selected = selection_info["column_volume_selected"]
+        column_pitch_selected = selection_info["column_pitch_selected"]
+        
+        # Очищаем контекстное меню перед заполнением в зависимости от контекста выделения
         self.rcm_menu.delete(0, "end")
         
-        if type_ == "cells" and not multiselect_check: self.rcm_menu.add_command(label="Edit this Cell", command=lambda: self.placeholder_message())
+        # Скорее всего эта фича не нужна
+        # if type_ == "cells" and not multiselect_check: self.rcm_menu.add_command(label="Edit this Cell", command=lambda: self.placeholder_message())
         
         if type_ == "cells" and column_channel_selected: self.rcm_menu.add_command(label="Set Channel for selection", command=lambda: self.edit_csvp(selected_rows, "channel"))
         if type_ == "cells" and column_soundlevel_selected: self.rcm_menu.add_command(label="Set Soundlevel for selection", command=lambda: self.edit_csvp(selected_rows, "soundlevel"))
         if type_ == "cells" and column_volume_selected: self.rcm_menu.add_command(label="Set Volume for selection", command=lambda: self.edit_csvp(selected_rows, "volume"))
         if type_ == "cells" and column_pitch_selected: self.rcm_menu.add_command(label="Set Pitch for selection", command=lambda: self.edit_csvp(selected_rows, "pitch"))
         
-        if type_ in ("cells", "rows") and not multiselect_rows: self.rcm_menu.add_command(label="Add sounds to this Row (rndwave)", command=lambda: self.placeholder_message())
+        if type_ in ("cells", "rows") and not multiselect_rows: self.rcm_menu.add_command(label="Add more sounds to this Row (rndwave)", command=lambda: self.placeholder_message())
         
-        if type_ == "columns" and column == 1: self.rcm_menu.add_command(label="Set Channel for All", command=lambda: self.placeholder_message())
-        if type_ == "columns" and column == 2: self.rcm_menu.add_command(label="Set Soundlevel for All", command=lambda: self.placeholder_message())
-        if type_ == "columns" and column == 3: self.rcm_menu.add_command(label="Set Volume for All", command=lambda: self.placeholder_message())
-        if type_ == "columns" and column == 4: self.rcm_menu.add_command(label="Set Pitch for All", command=lambda: self.placeholder_message())
+        if type_ == "columns" and column == 1: self.rcm_menu.add_command(label="Set Channel for All", command=lambda: self.edit_csvp(selected_rows, "channel"))
+        if type_ == "columns" and column == 2: self.rcm_menu.add_command(label="Set Soundlevel for All", command=lambda: self.edit_csvp(selected_rows, "soundlevel"))
+        if type_ == "columns" and column == 3: self.rcm_menu.add_command(label="Set Volume for All", command=lambda: self.edit_csvp(selected_rows, "volume"))
+        if type_ == "columns" and column == 4: self.rcm_menu.add_command(label="Set Pitch for All", command=lambda: self.edit_csvp(selected_rows, "pitch"))
         
         self.rcm_menu.add_separator()
         
@@ -652,25 +705,25 @@ class App(TkinterDnD.Tk):
             dialog_title = "Set Channel"
             dialog_description = "Enter a new channel value for selected rows:"
             dialog_list = CHANNELS_LIST
-            dialog_default = "CHAN_AUTO"
+            dialog_default = DEFAULT_CHANNEL
 
         if csvp == "soundlevel":
             dialog_title = "Set Soundlevel"
             dialog_description = "Enter a new soundlevel value for selected rows:"
             dialog_list = SNDLVLS_LIST
-            dialog_default = "SNDLVL_NORM"
+            dialog_default = DEFAULT_SOUNDLEVEL
         
         if csvp == "volume":
             dialog_title = "Set Volume"
             dialog_description = "Enter a new volume value for selected rows:"
-            dialog_list = ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1", "0.1, 0.9", "0.2, 0.8", "0.3, 0.7", "0.4, 0.6", "0.5, 1"]
-            dialog_default = "1"
+            dialog_list = VOLUME_LIST
+            dialog_default = DEFAULT_VOLUME
         
         if csvp == "pitch":
             dialog_title = "Set Pitch"
             dialog_description = "Enter a new pitch value for selected rows:"
             dialog_list = ["10", "20", "30", "40", "50", "60", "70", "80", "90", "PITCH_LOW", "PITCH_NORM", "100", "110", "PITCH_HIGH", "120", "130", "140", "150", "160", "170", "180", "190", "200", "210", "220", "230", "240", "250", "95, 100", "100, 110"]
-            dialog_default = "PITCH_NORM"
+            dialog_default = DEFAULT_PITCH
         
         dialog = ChoiceDialog(
             self,
