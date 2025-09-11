@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.1.3"
+ABOUT_TOOL_VERSION = "0.1.4"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -81,8 +81,12 @@ class App(TkinterDnD.Tk):
         self.btn_open_ss.pack(
             side=tk.LEFT, padx=(0, 0)
         )
-        self.btn_save_ss = ttk.Button(self.toolbar, text="Save Soundscript As", command=self.save_soundscript, state="disabled")
+        self.btn_save_ss = ttk.Button(self.toolbar, text="Save", command=lambda: self.save_soundscript(same_file=True), state="disabled")
         self.btn_save_ss.pack(
+            side=tk.LEFT, padx=(0, 0)
+        )
+        self.btn_save_ss_as = ttk.Button(self.toolbar, text="Save As...", command=self.save_soundscript, state="disabled")
+        self.btn_save_ss_as.pack(
             side=tk.LEFT, padx=(0, 0)
         )
         self.btn_add_sounds = ttk.Button(self.toolbar, text="Add Sounds", command=self.add_sounds_button, state="disabled")
@@ -350,6 +354,7 @@ class App(TkinterDnD.Tk):
         self.update_table()
         self.status_var.set(f"Added {files_count} WAV files." if files_count else f"WAV files not found!")
         self.soundscript_saved = False
+        self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name if self.soundscript_name else 'Unsaved Soundscript'}*")
         if bad_paths:
             messagebox.showwarning(
                 "WARNING",
@@ -376,6 +381,7 @@ class App(TkinterDnD.Tk):
         if not self.soundscript_saved:
             if not messagebox.askokcancel("WARNING", "Are you sure you want to create a new script?\nUnsaved progress will be lost!"): return
         self.soundscript_name = None
+        self.soundscript_path = None
         self.items = []
         self.update_table()
         self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - New Soundscript")
@@ -537,6 +543,7 @@ class App(TkinterDnD.Tk):
         self.btn_new_ss.state(["!disabled"])
         self.btn_open_ss.state(["!disabled"])
         self.btn_save_ss.state(["!disabled"])
+        self.btn_save_ss_as.state(["!disabled"])
         self.btn_add_sounds.state(["!disabled"])
 
     # Метод который происходит при драг н дропе файлов на окно или таблицу
@@ -555,6 +562,7 @@ class App(TkinterDnD.Tk):
     def on_sheet_modified(self, event):
         print(f"Sheet modified!")
         self.soundscript_saved = False
+        self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name if self.soundscript_name else 'Unsaved Soundscript'}*")
     
     # Метод для получения информации при селекте чего-либо в таблице
     def get_selection_info(self, event=None):
@@ -748,6 +756,7 @@ class App(TkinterDnD.Tk):
         self.update_table()
         self.status_var.set(f"{len(selected_rows)} rows changed.")
         self.soundscript_saved = False
+        self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name if self.soundscript_name else 'Unsaved Soundscript'}*")
     
     # Метод для редактирования имени ноды
     def edit_entry_name(self, row, override_name=None):
@@ -779,6 +788,7 @@ class App(TkinterDnD.Tk):
         self.update_table()
         self.status_var.set(f"Name changed!")
         self.soundscript_saved = False
+        self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name if self.soundscript_name else 'Unsaved Soundscript'}*")
     
     # Метод для загрузки кэша из файла
     def load_cache(self) -> str | None:
@@ -843,19 +853,35 @@ class App(TkinterDnD.Tk):
         return "\n".join(out)
     
     # Функция для сохранения саундскрипта
-    def save_soundscript(self):
+    def save_soundscript(self, same_file=False):
+        if not self.items: return
+        
+        # Если у нас абсолютно новый файл и пользователь жмякает Save - надо запускать Save As логику
+        if not self.soundscript_name: same_file=False
+        
         scripts_folder = os.path.dirname(self.gameinfo_path) + "/scripts"
-        ss_name = self.soundscript_name if self.soundscript_name else self.project_name.split()[0].lower() + "_" + "soundscript"
-        print(f"ss_name: {ss_name}")
-        ss_path = self.save_file_dialog(title = "Save Soundscript", filter_str = "Text (*.txt);;All (*)", start_dir = scripts_folder, suggested_name = ss_name, add_default_ext = True)
+        ss_path = self.soundscript_path
+        
+        print(f"ss_path: {ss_path}")
+        print(f"same_file: {same_file}")
+        print(f"self.soundscript_name: {self.soundscript_name}")
+        print(f"self.soundscript_path: {self.soundscript_path}")
+        
+        if not same_file:
+            ss_name = self.soundscript_name if self.soundscript_name else self.project_name.split()[0].lower() + "_" + "soundscript"
+            print(f"ss_name: {ss_name}")
+            ss_path = self.save_file_dialog(title = "Save Soundscript", filter_str = "Text (*.txt);;All (*)", start_dir = scripts_folder, suggested_name = ss_name, add_default_ext = True)
+        
         if not ss_path: return None
         print(f"ss_path: {ss_path}")
+        
         soundscript_content = self.dump_soundscript_from_items()
         print(f"soundscript_content:")
         print(soundscript_content)
         with open(ss_path, "w", encoding="utf-8") as f:
             f.write(soundscript_content)
         self.soundscript_name = os.path.basename(ss_path)
+        self.soundscript_path = ss_path
         self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name}")
         self.soundscript_saved = True
         return ss_path
