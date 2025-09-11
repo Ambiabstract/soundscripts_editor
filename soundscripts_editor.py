@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.1.2"
+ABOUT_TOOL_VERSION = "0.1.3"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -375,6 +375,7 @@ class App(TkinterDnD.Tk):
         if not self.items: return
         if not self.soundscript_saved:
             if not messagebox.askokcancel("WARNING", "Are you sure you want to create a new script?\nUnsaved progress will be lost!"): return
+        self.soundscript_name = None
         self.items = []
         self.update_table()
         self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - New Soundscript")
@@ -844,7 +845,7 @@ class App(TkinterDnD.Tk):
     # Функция для сохранения саундскрипта
     def save_soundscript(self):
         scripts_folder = os.path.dirname(self.gameinfo_path) + "/scripts"
-        ss_name = self.project_name.split()[0].lower() + "_" + "soundscript"
+        ss_name = self.soundscript_name if self.soundscript_name else self.project_name.split()[0].lower() + "_" + "soundscript"
         print(f"ss_name: {ss_name}")
         ss_path = self.save_file_dialog(title = "Save Soundscript", filter_str = "Text (*.txt);;All (*)", start_dir = scripts_folder, suggested_name = ss_name, add_default_ext = True)
         if not ss_path: return None
