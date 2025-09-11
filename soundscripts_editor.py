@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.0.8"
+ABOUT_TOOL_VERSION = "0.0.9"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -25,6 +25,16 @@ DEFAULT_SOUNDLEVEL = "SNDLVL_NORM"
 DEFAULT_VOLUME = "VOL_NORM"
 DEFAULT_PITCH = "PITCH_NORM"
 CACHE_PATH = "soundscripts_editor_cache.json"
+CHANNELS_LIST = [
+    "CHAN_AUTO", "CHAN_WEAPON", "CHAN_VOICE", "CHAN_VOICE2", "CHAN_ITEM", "CHAN_BODY", "CHAN_STREAM", "CHAN_REPLACE", "CHAN_STATIC", "CHAN_VOICE_BASE"
+]
+SNDLVLS_LIST  = [
+    "SNDLVL_NONE", "SNDLVL_20dB", "SNDLVL_25dB", "SNDLVL_30dB", "SNDLVL_35dB", "SNDLVL_40dB",
+            "SNDLVL_45dB", "SNDLVL_50dB", "SNDLVL_55dB", "SNDLVL_IDLE", "SNDLVL_TALKING", "SNDLVL_65dB",
+            "SNDLVL_STATIC", "SNDLVL_70dB", "SNDLVL_NORM", "SNDLVL_75dB", "SNDLVL_80dB", "SNDLVL_85dB",
+            "SNDLVL_90dB", "SNDLVL_95dB", "SNDLVL_100dB", "SNDLVL_105dB", "SNDLVL_110dB", "SNDLVL_120dB",
+            "SNDLVL_130dB", "SNDLVL_GUNFIRE", "SNDLVL_140dB", "SNDLVL_150dB", "SNDLVL_180dB"
+]
 
 # Класс приложения
 class App(TkinterDnD.Tk):
@@ -146,7 +156,7 @@ class App(TkinterDnD.Tk):
         self.sheet.bind("<Double-1>", self.on_double_click)
         for w in (self.sheet.MT, self.sheet.CH, self.sheet.RI):
             w.bind("<Button-3>", self.on_right_click, add="+")   # Windows/Linux
-            w.bind("<Button-2>", self.on_right_click, add="+")   # macOS
+            # w.bind("<Button-2>", self.on_right_click, add="+")   # macOS
         # self.sheet.MT.bind("<Button-3>", self.on_right_click_mt, add="+") # Main Table
         # self.sheet.CH.bind("<Button-3>", self.on_right_click_ch, add="+") # Column Headers
         # self.sheet.RI.bind("<Button-3>", self.on_right_click_ri, add="+") # Row Index
@@ -600,10 +610,10 @@ class App(TkinterDnD.Tk):
         
         if type_ == "cells" and not multiselect_check: self.rcm_menu.add_command(label="Edit this Cell", command=lambda: self.placeholder_message())
         
-        if type_ == "cells" and column_channel_selected: self.rcm_menu.add_command(label="Set Channel for selection", command=lambda: self.edit_channels(selected_rows))
-        if type_ == "cells" and column_soundlevel_selected: self.rcm_menu.add_command(label="Set Soundlevel for selection", command=lambda: self.placeholder_message())
-        if type_ == "cells" and column_volume_selected: self.rcm_menu.add_command(label="Set Volume for selection", command=lambda: self.placeholder_message())
-        if type_ == "cells" and column_pitch_selected: self.rcm_menu.add_command(label="Set Pitch for selection", command=lambda: self.placeholder_message())
+        if type_ == "cells" and column_channel_selected: self.rcm_menu.add_command(label="Set Channel for selection", command=lambda: self.edit_csvp(selected_rows, "channel"))
+        if type_ == "cells" and column_soundlevel_selected: self.rcm_menu.add_command(label="Set Soundlevel for selection", command=lambda: self.edit_csvp(selected_rows, "soundlevel"))
+        if type_ == "cells" and column_volume_selected: self.rcm_menu.add_command(label="Set Volume for selection", command=lambda: self.edit_csvp(selected_rows, "volume"))
+        if type_ == "cells" and column_pitch_selected: self.rcm_menu.add_command(label="Set Pitch for selection", command=lambda: self.edit_csvp(selected_rows, "pitch"))
         
         if type_ in ("cells", "rows") and not multiselect_rows: self.rcm_menu.add_command(label="Add sounds to this Row (rndwave)", command=lambda: self.placeholder_message())
         
@@ -629,20 +639,32 @@ class App(TkinterDnD.Tk):
         messagebox.showinfo("Work in progress", "Сорян Русик, эта фича ещё не работает ¯\_(ツ)_/¯")
 
     # Метод для редактирования каналов одной или нескольких нод
-    def edit_channels(self, selected_rows):
+    def edit_csvp(self, selected_rows, csvp):
         print(f" ")
         print(f"EDIT CHANNELS START")
         print(f"selected_rows: {selected_rows}")
         print(f"self.items: {self.items}")
-        
-        # channel_value = "my_channel"
-        channel_value = simpledialog.askstring("Set Channel", "Enter a new channel value.\n\nExamples:\nCHAN_AUTO\nCHAN_WEAPON\nCHAN_VOICE\nCHAN_ITEM\nCHAN_BODY\nCHAN_STREAM\nCHAN_REPLACE\nCHAN_STATIC\nCHAN_VOICE_BASE\n")
-        if not channel_value: return
-        for idx in selected_rows:
-            self.items[idx]["channel"] = channel_value
+        print(f"csvp: {csvp}")
+
+        if csvp in ("channel", "soundlevel"):
+            print(f"channel or soundlevel!")
+            
+            channel_dialog = ChoiceDialog(
+                self,
+                "Set Channel",
+                "Enter a new channel value for selected rows.",
+                CHANNELS_LIST,
+                default="CHAN_AUTO"
+            )
+            channel_value = channel_dialog.result
+            if not channel_value: return
+            for idx in selected_rows:
+                self.items[idx][csvp] = channel_value
+    
+        if csvp in ("volume", "pitch"): print(f"volume or pitch!")
 
         self.update_table()
-        self.status_var.set(f"Channel changed for {len(selected_rows)} rows.")
+        self.status_var.set(f"{len(selected_rows)} rows changed.")
         self.soundscript_saved = False
     
     # Метод для загрузки кэша из файла
@@ -800,6 +822,56 @@ class App(TkinterDnD.Tk):
             items.append(item)
     
         return items
+
+class ChoiceDialog(tk.Toplevel):
+    def __init__(self, parent, title, prompt, values, default=None):
+        super().__init__(parent)
+        self.title(title)
+        self.result = None
+
+        # Минимальные размеры
+        self.minsize(250, 120)
+
+        # Содержимое
+        tk.Label(self, text=prompt).pack(padx=10, pady=10)
+
+        self.combo = ttk.Combobox(self, values=values, state="readonly")
+        self.combo.pack(padx=10, pady=5, fill="x", expand=True)
+
+        # Устанавливаем дефолт
+        if default and default in values:
+            self.combo.set(default)
+        else:
+            self.combo.current(0)
+
+        button_frame = tk.Frame(self)
+        button_frame.pack(pady=10)
+
+        tk.Button(button_frame, text="OK", command=self.on_ok).pack(side="left", padx=5)
+        tk.Button(button_frame, text="Cancel", command=self.on_cancel).pack(side="right", padx=5)
+
+        # Сделать окно модальным
+        self.grab_set()
+
+        # Центрирование
+        self.update_idletasks()
+        w = self.winfo_width()
+        h = self.winfo_height()
+        ws = self.winfo_screenwidth()
+        hs = self.winfo_screenheight()
+        x = (ws // 2) - (w // 2)
+        y = (hs // 2) - (h // 2)
+        self.geometry(f"{w}x{h}+{x}+{y}")
+
+        # Ждать закрытия
+        self.wait_window()
+
+    def on_ok(self):
+        self.result = self.combo.get()
+        self.destroy()
+
+    def on_cancel(self):
+        self.destroy()
 
 def main():
     app = App()
