@@ -645,23 +645,44 @@ class App(TkinterDnD.Tk):
         print(f"selected_rows: {selected_rows}")
         print(f"self.items: {self.items}")
         print(f"csvp: {csvp}")
+        
+        if not csvp: return
+        
+        if csvp == "channel":
+            dialog_title = "Set Channel"
+            dialog_description = "Enter a new channel value for selected rows:"
+            dialog_list = CHANNELS_LIST
+            dialog_default = "CHAN_AUTO"
 
-        if csvp in ("channel", "soundlevel"):
-            print(f"channel or soundlevel!")
-            
-            channel_dialog = ChoiceDialog(
-                self,
-                "Set Channel",
-                "Enter a new channel value for selected rows:",
-                CHANNELS_LIST,
-                default="CHAN_AUTO"
-            )
-            channel_value = channel_dialog.result
-            if not channel_value: return
-            for idx in selected_rows:
-                self.items[idx][csvp] = channel_value
-    
-        if csvp in ("volume", "pitch"): print(f"volume or pitch!")
+        if csvp == "soundlevel":
+            dialog_title = "Set Soundlevel"
+            dialog_description = "Enter a new soundlevel value for selected rows:"
+            dialog_list = SNDLVLS_LIST
+            dialog_default = "SNDLVL_NORM"
+        
+        if csvp == "volume":
+            dialog_title = "Set Volume"
+            dialog_description = "Enter a new volume value for selected rows:"
+            dialog_list = ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1", "0.1, 0.9", "0.2, 0.8", "0.3, 0.7", "0.4, 0.6", "0.5, 1"]
+            dialog_default = "1"
+        
+        if csvp == "pitch":
+            dialog_title = "Set Pitch"
+            dialog_description = "Enter a new pitch value for selected rows:"
+            dialog_list = ["10", "20", "30", "40", "50", "60", "70", "80", "90", "PITCH_LOW", "PITCH_NORM", "100", "110", "PITCH_HIGH", "120", "130", "140", "150", "160", "170", "180", "190", "200", "210", "220", "230", "240", "250", "95, 100", "100, 110"]
+            dialog_default = "PITCH_NORM"
+        
+        dialog = ChoiceDialog(
+            self,
+            dialog_title,
+            dialog_description,
+            dialog_list,
+            dialog_default
+        )
+        new_value = dialog.result
+        if not new_value: return
+        for idx in selected_rows:
+            self.items[idx][csvp] = new_value
 
         self.update_table()
         self.status_var.set(f"{len(selected_rows)} rows changed.")
