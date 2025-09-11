@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.1.1"
+ABOUT_TOOL_VERSION = "0.1.2"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -749,7 +749,7 @@ class App(TkinterDnD.Tk):
         self.soundscript_saved = False
     
     # Метод для редактирования имени ноды
-    def edit_entry_name(self, row):
+    def edit_entry_name(self, row, override_name=None):
         print(f" ")
         print(f"edit_entry_name!")
         print(f"row: {row}")
@@ -757,14 +757,22 @@ class App(TkinterDnD.Tk):
         current_entry_name = self.items[row]["entry_name"]
         print(f"current_entry_name: {current_entry_name}")
         
+        init_name = override_name if override_name else current_entry_name
+        
         new_entry_name = simpledialog.askstring(
             "New name",
             "Please enter a new entry.name:\t\t\t\n",
-            initialvalue=current_entry_name
+            initialvalue=init_name
         )
         if not new_entry_name or current_entry_name == new_entry_name: return
         
-        # Новое значение имени, но нужно добавить ещё проверку на одноимённость
+        # Проверка на существование такого имени в таблице
+        existing_names = [e["entry_name"] for e in self.items]
+        if new_entry_name in existing_names: 
+            if not messagebox.askyesno("Warning", "This name already exist! Are you sure you want to continue?"):
+                self.edit_entry_name(row, override_name=new_entry_name)
+                return
+        # Новое значение имени
         self.items[row]["entry_name"] = new_entry_name
         
         self.update_table()
