@@ -652,7 +652,7 @@ class App(TkinterDnD.Tk):
             channel_dialog = ChoiceDialog(
                 self,
                 "Set Channel",
-                "Enter a new channel value for selected rows.",
+                "Enter a new channel value for selected rows:",
                 CHANNELS_LIST,
                 default="CHAN_AUTO"
             )
@@ -830,20 +830,27 @@ class ChoiceDialog(tk.Toplevel):
         self.result = None
 
         # Минимальные размеры
-        self.minsize(250, 120)
+        self.minsize(300, 160)
 
         # Содержимое
         tk.Label(self, text=prompt).pack(padx=10, pady=10)
 
+        # Combobox
         self.combo = ttk.Combobox(self, values=values, state="readonly")
         self.combo.pack(padx=10, pady=5, fill="x", expand=True)
 
-        # Устанавливаем дефолт
+        # Дефолтное значение
         if default and default in values:
             self.combo.set(default)
         else:
             self.combo.current(0)
 
+        # Подпись и поле ввода
+        tk.Label(self, text="Or enter a custom value:").pack(padx=10, pady=(10, 0))
+        self.entry = tk.Entry(self)
+        self.entry.pack(padx=10, pady=5, fill="x", expand=True)
+
+        # Кнопки
         button_frame = tk.Frame(self)
         button_frame.pack(pady=10)
 
@@ -867,7 +874,11 @@ class ChoiceDialog(tk.Toplevel):
         self.wait_window()
 
     def on_ok(self):
-        self.result = self.combo.get()
+        text_value = self.entry.get().strip()
+        if text_value:
+            self.result = text_value
+        else:
+            self.result = self.combo.get()
         self.destroy()
 
     def on_cancel(self):
