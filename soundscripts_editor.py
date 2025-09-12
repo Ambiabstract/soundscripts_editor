@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.1.5"
+ABOUT_TOOL_VERSION = "0.1.6"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -168,6 +168,9 @@ class App(TkinterDnD.Tk):
         # self.sheet.RI.bind("<Button-3>", self.on_right_click_ri, add="+") # Row Index
         self.sheet.bind("<Control-s>", lambda event: self.save_soundscript(same_file=True))
         self.sheet.bind("<Control-S>", lambda event: self.save_soundscript(same_file=False))
+        
+        # Перехватывание закрытия окна
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
     # Метод для настройки правил драг н дропа
     def setup_dnd(self):
@@ -970,6 +973,23 @@ class App(TkinterDnD.Tk):
             items.append(item)
     
         return items
+
+    # Метод для отслеживания закрытия окна приложения
+    def on_closing(self):
+        if not self.soundscript_saved:
+            answer = messagebox.askyesnocancel(
+                "Unsaved changes",
+                "You have unsaved changes! \nWould you like to save before exiting?"
+            )
+            if answer:  # Да, сохраняем
+                self.save_soundscript(same_file=True)
+                self.destroy()
+            elif answer is False:  # Нет, выходим без сохранения
+                self.destroy()
+            else:  # Отмена - остаёмся в приложении
+                return
+        else:
+            self.destroy()
 
 class ChoiceDialog(tk.Toplevel):
     def __init__(self, parent, title, prompt, values, default=None):
