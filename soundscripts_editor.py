@@ -670,7 +670,7 @@ class App(TkinterDnD.Tk):
         # Скорее всего эта фича не нужна
         # if type_ == "cells" and not multiselect_check: self.rcm_menu.add_command(label="Edit this Cell", command=lambda: self.placeholder_message())
         
-        if type_ == "cells" and not multiselect_check and column_name_selected: self.rcm_menu.add_command(label="Edit entry.name", command=lambda: self.edit_entry_names(selected_rows))
+        if type_ in ("cells", "columns") and column_name_selected: self.rcm_menu.add_command(label="Edit entry.names", command=lambda: self.edit_entry_names(selected_rows))
         
         if type_ == "cells" and column_channel_selected: self.rcm_menu.add_command(label="Set Channel for selection", command=lambda: self.edit_csvp(selected_rows, "channel"))
         if type_ == "cells" and column_soundlevel_selected: self.rcm_menu.add_command(label="Set Soundlevel for selection", command=lambda: self.edit_csvp(selected_rows, "soundlevel"))
