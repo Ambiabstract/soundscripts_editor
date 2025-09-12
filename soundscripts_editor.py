@@ -886,6 +886,7 @@ class App(TkinterDnD.Tk):
         self.soundscript_path = ss_path
         self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name}")
         self.soundscript_saved = True
+        self.status_var.set(f"{self.soundscript_name} successfully saved!")
         return ss_path
     
     # Функция для открытия саундскрипта
