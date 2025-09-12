@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.1.6"
+ABOUT_TOOL_VERSION = "0.1.7"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -1022,8 +1022,20 @@ class ChoiceDialog(tk.Toplevel):
         button_frame = tk.Frame(self)
         button_frame.pack(pady=10)
 
-        tk.Button(button_frame, text="OK", command=self.on_ok).pack(side="left", padx=5)
-        tk.Button(button_frame, text="Cancel", command=self.on_cancel).pack(side="right", padx=5)
+        ok_button = tk.Button(button_frame, text="   OK   ", command=self.on_ok, default="active")
+        ok_button.pack(side="left", padx=5)
+
+        cancel_button = tk.Button(button_frame, text="Cancel", command=self.on_cancel)
+        cancel_button.pack(side="right", padx=5)
+
+        # Фокус на поле ввода
+        self.entry.focus_set()
+
+        # Enter = OK
+        self.bind("<Return>", lambda event: self.on_ok())
+
+        # Escape = Cancel (дополнительно удобно)
+        self.bind("<Escape>", lambda event: self.on_cancel())
 
         # Сделать окно модальным
         self.grab_set()
