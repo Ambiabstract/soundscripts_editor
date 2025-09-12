@@ -159,7 +159,7 @@ class App(TkinterDnD.Tk):
 
         # Бинды на контроль таблицы и контекстное меню
         self.sheet.bind("<<SheetModified>>", self.on_sheet_modified)
-        self.sheet.bind("<Double-1>", self.on_double_click)
+        self.sheet.bind("<Double-1>", self.fast_edit)
         for w in (self.sheet.MT, self.sheet.CH, self.sheet.RI):
             w.bind("<Button-3>", self.on_right_click, add="+")   # Windows/Linux
             # w.bind("<Button-2>", self.on_right_click, add="+")   # macOS
@@ -168,6 +168,7 @@ class App(TkinterDnD.Tk):
         # self.sheet.RI.bind("<Button-3>", self.on_right_click_ri, add="+") # Row Index
         self.sheet.bind("<Control-s>", lambda event: self.save_soundscript(same_file=True))
         self.sheet.bind("<Control-S>", lambda event: self.save_soundscript(same_file=False))
+        self.sheet.bind("<Return>", self.fast_edit)
         
         # Перехватывание закрытия окна
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -624,37 +625,25 @@ class App(TkinterDnD.Tk):
         
         return selection_info
     
-    # Дабл-клик ЛКМ: быстрый вход в редактирование одной ячейки или всех ячеек одной колонки
-    def on_double_click(self, event=None):
-        print(f"Double click!")
+    # Быстрый вход в редактирование - дабл-клик ЛКМ или Enter
+    def fast_edit(self, event=None):
+        print(f"Fast edit!")
         
         # Получаем всю необходимую инфу о текущем выделении
         selection_info = self.get_selection_info()
         if not selection_info: return
-        row = selection_info["row"]
-        type_ = selection_info["type_"]
         selected_rows = selection_info["selected_rows"]
-        multiselect_columns = selection_info["multiselect_columns"]
         column_name_selected = selection_info["column_name_selected"]
         column_channel_selected = selection_info["column_channel_selected"]
         column_soundlevel_selected = selection_info["column_soundlevel_selected"]
         column_volume_selected = selection_info["column_volume_selected"]
         column_pitch_selected = selection_info["column_pitch_selected"]
         
-        # Одна ячейка
-        if type_ == "cells":
-            if column_name_selected: self.edit_entry_name(row)
-            if column_channel_selected: self.edit_csvp(selected_rows, "channel")
-            if column_soundlevel_selected: self.edit_csvp(selected_rows, "soundlevel")
-            if column_volume_selected: self.edit_csvp(selected_rows, "volume")
-            if column_pitch_selected: self.edit_csvp(selected_rows, "pitch")
-        
-        # Все ячейки одной колонки
-        if type_ == "columns" and not multiselect_columns:
-            if column_channel_selected: self.edit_csvp(selected_rows, "channel")
-            if column_soundlevel_selected: self.edit_csvp(selected_rows, "soundlevel")
-            if column_volume_selected: self.edit_csvp(selected_rows, "volume")
-            if column_pitch_selected: self.edit_csvp(selected_rows, "pitch")
+        if column_name_selected: self.edit_entry_names(selected_rows)
+        if column_channel_selected: self.edit_csvp(selected_rows, "channel")
+        if column_soundlevel_selected: self.edit_csvp(selected_rows, "soundlevel")
+        if column_volume_selected: self.edit_csvp(selected_rows, "volume")
+        if column_pitch_selected: self.edit_csvp(selected_rows, "pitch")
         
     # Метод для контекстного меню таблицы на ПКМ - в зависимости от контекста клика показываются разные пункты
     def on_right_click(self, event):
@@ -663,8 +652,7 @@ class App(TkinterDnD.Tk):
         
         # Получаем всю необходимую инфу о текущем выделении
         selection_info = self.get_selection_info()
-        if not selection_info: return        
-        row = selection_info["row"]
+        if not selection_info: return
         column = selection_info["column"]
         type_ = selection_info["type_"]
         selected_rows = selection_info["selected_rows"]
@@ -682,7 +670,7 @@ class App(TkinterDnD.Tk):
         # Скорее всего эта фича не нужна
         # if type_ == "cells" and not multiselect_check: self.rcm_menu.add_command(label="Edit this Cell", command=lambda: self.placeholder_message())
         
-        if type_ == "cells" and not multiselect_check and column_name_selected: self.rcm_menu.add_command(label="Edit entry.name", command=lambda: self.edit_entry_name(row))
+        if type_ == "cells" and not multiselect_check and column_name_selected: self.rcm_menu.add_command(label="Edit entry.name", command=lambda: self.edit_entry_names(selected_rows))
         
         if type_ == "cells" and column_channel_selected: self.rcm_menu.add_command(label="Set Channel for selection", command=lambda: self.edit_csvp(selected_rows, "channel"))
         if type_ == "cells" and column_soundlevel_selected: self.rcm_menu.add_command(label="Set Soundlevel for selection", command=lambda: self.edit_csvp(selected_rows, "soundlevel"))
@@ -759,39 +747,44 @@ class App(TkinterDnD.Tk):
             self.items[idx][csvp] = new_value
 
         self.update_table()
-        self.status_var.set(f"{len(selected_rows)} rows changed.")
+        self.status_var.set(f"Updated {csvp} for {len(selected_rows)} rows!")
         self.soundscript_saved = False
         self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name if self.soundscript_name else 'Unsaved Soundscript'}*")
     
-    # Метод для редактирования имени ноды
-    def edit_entry_name(self, row, override_name=None):
+    # Метод для редактирования имён
+    def edit_entry_names(self, selected_rows, override_name=None):
         print(f" ")
-        print(f"edit_entry_name!")
-        print(f"row: {row}")
+        print(f"edit_entry_name!!!!!")
+        print(f"selected_rows: {selected_rows}")
         
-        current_entry_name = self.items[row]["entry_name"]
-        print(f"current_entry_name: {current_entry_name}")
-        
-        init_name = override_name if override_name else current_entry_name
-        
-        new_entry_name = simpledialog.askstring(
-            "New name",
-            "Please enter a new entry.name:\t\t\t\n",
-            initialvalue=init_name
-        )
-        if not new_entry_name or current_entry_name == new_entry_name: return
-        
-        # Проверка на существование такого имени в таблице
-        existing_names = [e["entry_name"] for e in self.items]
-        if new_entry_name in existing_names: 
-            if not messagebox.askyesno("Warning", "This name already exist! Are you sure you want to continue?"):
-                self.edit_entry_name(row, override_name=new_entry_name)
-                return
-        # Новое значение имени
-        self.items[row]["entry_name"] = new_entry_name
+        for row in selected_rows:
+            current_entry_name = self.items[row]["entry_name"]
+            print(f"current_entry_name: {current_entry_name}")
+            
+            init_name = override_name if override_name else current_entry_name
+            
+            # Без этой штуки фокус каждого нового окна слетает начиная со второго
+            self.update()
+            
+            new_entry_name = simpledialog.askstring(
+                "New name",
+                "Please enter a new entry.name:\t\t\t\n",
+                initialvalue=init_name,
+                parent=self
+            )
+            if not new_entry_name or current_entry_name == new_entry_name: continue
+            
+            # Проверка на существование такого имени в таблице
+            existing_names = [e["entry_name"] for e in self.items]
+            if new_entry_name in existing_names: 
+                if not messagebox.askyesno("Warning", "This name already exist! Are you sure you want to continue?"):
+                    self.edit_entry_names([row], override_name=new_entry_name)
+                    continue
+            # Новое значение имени
+            self.items[row]["entry_name"] = new_entry_name
         
         self.update_table()
-        self.status_var.set(f"Name changed!")
+        self.status_var.set(f"{len(selected_rows)} names updated!")
         self.soundscript_saved = False
         self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name if self.soundscript_name else 'Unsaved Soundscript'}*")
     
