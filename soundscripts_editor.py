@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.1.9"
+ABOUT_TOOL_VERSION = "0.2.0"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -54,7 +54,7 @@ class App(TkinterDnD.Tk):
         self.project_name = None
         self.soundscript_path = None
         self.soundscript_name = None
-        self.soundscript_saved = False
+        self.soundscript_saved = True
         self.add_proj_name_to_entryname = False
 
         # Строим визуалочку окна, тулбара, нижней строчки
@@ -632,18 +632,21 @@ class App(TkinterDnD.Tk):
         # Получаем всю необходимую инфу о текущем выделении
         selection_info = self.get_selection_info()
         if not selection_info: return
+        row = selection_info["row"]
         selected_rows = selection_info["selected_rows"]
         column_name_selected = selection_info["column_name_selected"]
         column_channel_selected = selection_info["column_channel_selected"]
         column_soundlevel_selected = selection_info["column_soundlevel_selected"]
         column_volume_selected = selection_info["column_volume_selected"]
         column_pitch_selected = selection_info["column_pitch_selected"]
+        column_sounds_selected = selection_info["column_sounds_selected"]
         
         if column_name_selected: self.edit_entry_names(selected_rows)
         if column_channel_selected: self.edit_csvp(selected_rows, "channel")
         if column_soundlevel_selected: self.edit_csvp(selected_rows, "soundlevel")
         if column_volume_selected: self.edit_csvp(selected_rows, "volume")
         if column_pitch_selected: self.edit_csvp(selected_rows, "pitch")
+        if column_sounds_selected: self.edit_row_sounds_list(row)
         
     # Метод для контекстного меню таблицы на ПКМ - в зависимости от контекста клика показываются разные пункты
     def on_right_click(self, event):
@@ -653,6 +656,7 @@ class App(TkinterDnD.Tk):
         # Получаем всю необходимую инфу о текущем выделении
         selection_info = self.get_selection_info()
         if not selection_info: return
+        row = selection_info["row"]
         column = selection_info["column"]
         type_ = selection_info["type_"]
         selected_rows = selection_info["selected_rows"]
@@ -677,7 +681,7 @@ class App(TkinterDnD.Tk):
         if type_ == "cells" and column_volume_selected: self.rcm_menu.add_command(label="Set Volume for selection", command=lambda: self.edit_csvp(selected_rows, "volume"))
         if type_ == "cells" and column_pitch_selected: self.rcm_menu.add_command(label="Set Pitch for selection", command=lambda: self.edit_csvp(selected_rows, "pitch"))
         
-        if type_ in ("cells", "rows") and not multiselect_rows: self.rcm_menu.add_command(label="Add more sounds to this Row (rndwave)", command=lambda: self.placeholder_message())
+        if type_ in ("cells", "rows") and not multiselect_rows: self.rcm_menu.add_command(label="Add more sounds to this Row (rndwave)", command=lambda: self.edit_row_sounds_list(row))
         
         if type_ == "columns" and column == 1: self.rcm_menu.add_command(label="Set Channel for All", command=lambda: self.edit_csvp(selected_rows, "channel"))
         if type_ == "columns" and column == 2: self.rcm_menu.add_command(label="Set Soundlevel for All", command=lambda: self.edit_csvp(selected_rows, "soundlevel"))
@@ -788,6 +792,38 @@ class App(TkinterDnD.Tk):
         self.soundscript_saved = False
         self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name if self.soundscript_name else 'Unsaved Soundscript'}*")
     
+    # Метод для редактирования звуков ноды (один wave или rndwave)
+    def edit_row_sounds_list(self, row):
+        print(f" ")
+        print(f"edit_row_sounds_list!")
+        print(f"row: {row}")
+        
+        entry_name = self.items[row]["entry_name"]
+        
+        sounds = self.items[row]["sounds"]
+        print(f"sounds: {sounds}")
+        
+        for wave in sounds: print(f"\twave: {wave}")
+        print(f" ")
+        
+        new_sounds = SoundsListEdit(
+            self,
+            f'Edit Sounds for "{entry_name}"',
+            f'Add or remove sounds for "{entry_name}".\t\nSingle sound will be only "wave".\t\t\t\nMultiple sounds will be "rndwave" block with waves.\t',
+            sounds
+        )
+        new_sounds = new_sounds.result
+        
+        print(f"!!! new_sounds: {new_sounds}")
+        if not new_sounds: return
+        
+        self.items[row]["sounds"] = new_sounds
+        
+        self.update_table()
+        self.status_var.set(f"Updated sounds for {entry_name}!")
+        self.soundscript_saved = False
+        self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name if self.soundscript_name else 'Unsaved Soundscript'}*")
+
     # Метод для загрузки кэша из файла
     def load_cache(self) -> str | None:
         cache_path = Path(CACHE_PATH)
@@ -984,6 +1020,7 @@ class App(TkinterDnD.Tk):
         else:
             self.destroy()
 
+# Класс диалогового окна для редактирования csvp
 class ChoiceDialog(tk.Toplevel):
     def __init__(self, parent, title, prompt, values, default=None):
         super().__init__(parent)
@@ -993,7 +1030,7 @@ class ChoiceDialog(tk.Toplevel):
         # Минимальные размеры
         self.minsize(300, 160)
 
-        # Содержимое
+        # Описание
         tk.Label(self, text=prompt).pack(padx=10, pady=10)
 
         # Combobox
@@ -1027,7 +1064,7 @@ class ChoiceDialog(tk.Toplevel):
         # Enter = OK
         self.bind("<Return>", lambda event: self.on_ok())
 
-        # Escape = Cancel (дополнительно удобно)
+        # Escape = Cancel
         self.bind("<Escape>", lambda event: self.on_cancel())
 
         # Сделать окно модальным
@@ -1052,6 +1089,111 @@ class ChoiceDialog(tk.Toplevel):
             self.result = text_value
         else:
             self.result = self.combo.get()
+        self.destroy()
+
+    def on_cancel(self):
+        self.destroy()
+
+# Класс окна для редактирования звуков конкретной ноды
+class SoundsListEdit(tk.Toplevel):
+    def __init__(self, parent, title, prompt, sounds):
+        super().__init__(parent)
+        self.title(title)
+        self.result = None
+        
+        # print(f"SoundsListEdit parent: {parent}")
+
+        # Минимальные размеры
+        self.minsize(300, 300)
+
+        # Описание
+        tk.Label(self, text=prompt).pack(padx=10, pady=10)
+        
+        # Список
+        self.sounds_list = tk.Listbox(self, selectmode='extended', width=50, height=10)
+        self.sounds_list.pack(padx=10, pady=10)
+        self.sounds_list.bind("<Control-a>", self.select_all)
+        self.sounds_list.bind("<Control-A>", self.select_all)
+        self.sounds_list.bind("<Delete>", self.remove_selected)
+        
+        # Заполняем список текущим списком
+        for sound in sounds: self.sounds_list.insert(tk.END, sound)
+        
+        self.sounds = sounds
+
+        # Кнопки
+        button_frame_1 = tk.Frame(self)
+        button_frame_1.pack(pady=10)
+        button_frame_2 = tk.Frame(self)
+        button_frame_2.pack(pady=10)
+        
+        add_sounds_btn = tk.Button(button_frame_1, text="      Add Sounds\t", command=self.add_files).pack(side="left", padx=5)
+        
+        remove_sounds_btn = tk.Button(button_frame_1, text="  Remove Sounds\t", command=self.remove_selected).pack(side="left", padx=5)
+
+        ok_button = tk.Button(button_frame_2, text="     OK\t", command=self.on_ok, default="active")
+        ok_button.pack(side="left", padx=5)
+
+        cancel_button = tk.Button(button_frame_2, text="  Cancel\t", command=self.on_cancel)
+        cancel_button.pack(side="right", padx=5)
+
+        # Фокус на поле ввода
+        self.sounds_list.focus_set()
+
+        # Enter = OK
+        self.bind("<Return>", lambda event: self.on_ok())
+
+        # Escape = Cancel
+        self.bind("<Escape>", lambda event: self.on_cancel())
+
+        # Сделать окно модальным
+        self.grab_set()
+
+        # Центрирование
+        self.update_idletasks()
+        w = self.winfo_width()
+        h = self.winfo_height()
+        ws = self.winfo_screenwidth()
+        hs = self.winfo_screenheight()
+        x = (ws // 2) - (w // 2)
+        y = (hs // 2) - (h // 2)
+        self.geometry(f"{w}x{h}+{x}+{y}")
+
+        # Ждать закрытия
+        self.wait_window()
+
+    def add_files(self):
+        # Тут надо юзать функцию из родительского App open_files_dialog(self, title, filter_str="All Files (*.*)", start_dir=".", multi=True)
+        file_paths = filedialog.askopenfilenames(filetypes=[("WAV files", "*.wav")])
+        for file_path in file_paths:
+            if file_path not in self.sounds_list.get(0, tk.END):
+                self.sounds_list.insert(tk.END, file_path)
+        # Restore the output name
+        self.output_name_entry.delete(0, tk.END)
+        self.output_name_entry.insert(0, self.output_name)
+
+    def remove_selected(self, event=None):
+        selected_indices = self.sounds_list.curselection()
+        for index in reversed(selected_indices):
+            self.sounds_list.delete(index)
+
+    def select_all(self, event=None):
+        self.sounds_list.selection_set(0, tk.END)
+        return "break"  # чтобы не влияло на другие виджеты
+
+    def on_ok(self):
+        print(f"SoundsListEdit on_ok")
+        print(f"self.sounds:")
+        for old_sound in self.sounds:
+            print(f"\t{old_sound}")
+        redacted_sounds = list(self.sounds_list.get(0, tk.END))
+        print(f"redacted_sounds:")
+        for new_sound in redacted_sounds:
+            print(f"\t{new_sound}")
+        if not redacted_sounds:
+            messagebox.showerror("ERROR", f"There must be at least one sound in the list!")
+            return
+        self.result = redacted_sounds
         self.destroy()
 
     def on_cancel(self):
