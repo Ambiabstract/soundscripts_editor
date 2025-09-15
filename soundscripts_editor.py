@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.2.0"
+ABOUT_TOOL_VERSION = "0.2.1"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -1101,7 +1101,7 @@ class SoundsListEdit(tk.Toplevel):
         self.title(title)
         self.result = None
         
-        # print(f"SoundsListEdit parent: {parent}")
+        self.parent = parent
 
         # Минимальные размеры
         self.minsize(300, 300)
@@ -1162,15 +1162,62 @@ class SoundsListEdit(tk.Toplevel):
         # Ждать закрытия
         self.wait_window()
 
+    # Метод для добавления новых звуков в список
     def add_files(self):
-        # Тут надо юзать функцию из родительского App open_files_dialog(self, title, filter_str="All Files (*.*)", start_dir=".", multi=True)
-        file_paths = filedialog.askopenfilenames(filetypes=[("WAV files", "*.wav")])
-        for file_path in file_paths:
-            if file_path not in self.sounds_list.get(0, tk.END):
-                self.sounds_list.insert(tk.END, file_path)
+        print(f"SoundsListEdit add_files")
+        
+        # Выбираем WAV файлы
+        sound_folder = os.path.dirname(self.parent.gameinfo_path) + "/sound"
+        print(f"sound_folder: {sound_folder}")
+        sound_files = self.parent.open_files_dialog(title="Open WAV files", filter_str="Sounds (*.wav);;All (*)", start_dir = sound_folder, multi=True)
+        print(f"sound_files: {sound_files}")
+        if not sound_files: return
+        
+        # Отбираем хорошее от плохого
+        new_sounds = []
+        bad_paths = []
+        already_in_list = []
+        for path in sound_files:
+            # Добавление пути файла в список звуков
+            # Функция чтобы преобразовывать абсолютный путь файла в относительный путь
+            try:
+                # Проверяем, начинается ли path с папки с гейминфо
+                if os.path.commonpath([self.parent.gameinfo_folder, os.path.normcase(path)]) == self.parent.gameinfo_folder:
+                    try:
+                        relative = os.path.relpath(path, start=self.parent.gameinfo_folder)
+                        parts = relative.split(os.sep)
+            
+                        if parts[0].lower() == "sound":
+                            # Всё, что справа от "sound"
+                            path_rel = "/".join(parts[1:])
+                            if path_rel not in list(self.sounds_list.get(0, tk.END)):
+                                new_sounds.append(path_rel)
+                            else:
+                                already_in_list.append(path_rel)
+                        else:
+                            bad_paths.append(path)
+                            continue
+                    except ValueError:
+                        bad_paths.append(path)
+                        continue
+                else:
+                    bad_paths.append(path)
+                    continue
+            except Exception:
+                bad_paths.append(path)
+                continue
+        print(f"new_sounds: {new_sounds}")
+        print(f"bad_paths: {bad_paths}")
+        print(f"already_in_list: {already_in_list}")
+        
+        # Добавляем новые звуки к текущему списку
+        for new_sound in new_sounds: self.sounds_list.insert(tk.END, new_sound)
+        
+        # self.sounds_list.insert(tk.END, file_path)
         # Restore the output name
-        self.output_name_entry.delete(0, tk.END)
-        self.output_name_entry.insert(0, self.output_name)
+        # self.output_name_entry.delete(0, tk.END)
+        # self.output_name_entry.insert(0, self.output_name)
+        # pass
 
     def remove_selected(self, event=None):
         selected_indices = self.sounds_list.curselection()
