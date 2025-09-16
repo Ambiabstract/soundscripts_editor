@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.2.1"
+ABOUT_TOOL_VERSION = "0.2.2"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -169,6 +169,7 @@ class App(TkinterDnD.Tk):
         self.sheet.bind("<Control-s>", lambda event: self.save_soundscript(same_file=True))
         self.sheet.bind("<Control-S>", lambda event: self.save_soundscript(same_file=False))
         self.sheet.bind("<Return>", self.fast_edit)
+        self.sheet.bind("<Delete>", self.delete_selected_rows)
         
         # Перехватывание закрытия окна
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -681,7 +682,7 @@ class App(TkinterDnD.Tk):
         if type_ == "cells" and column_volume_selected: self.rcm_menu.add_command(label="Set Volume for selection", command=lambda: self.edit_csvp(selected_rows, "volume"))
         if type_ == "cells" and column_pitch_selected: self.rcm_menu.add_command(label="Set Pitch for selection", command=lambda: self.edit_csvp(selected_rows, "pitch"))
         
-        if type_ in ("cells", "rows") and not multiselect_rows: self.rcm_menu.add_command(label="Add more sounds to this Row (rndwave)", command=lambda: self.edit_row_sounds_list(row))
+        if type_ in ("cells", "rows") and not multiselect_rows: self.rcm_menu.add_command(label="Edit sounds of this row", command=lambda: self.edit_row_sounds_list(row))
         
         if type_ == "columns" and column == 1: self.rcm_menu.add_command(label="Set Channel for All", command=lambda: self.edit_csvp(selected_rows, "channel"))
         if type_ == "columns" and column == 2: self.rcm_menu.add_command(label="Set Soundlevel for All", command=lambda: self.edit_csvp(selected_rows, "soundlevel"))
@@ -691,7 +692,7 @@ class App(TkinterDnD.Tk):
         self.rcm_menu.add_separator()
         
         if type_ == "cells" and column in (1, 2, 3, 4): self.rcm_menu.add_command(label="Clear Cell(s)", command=lambda: self.placeholder_message())
-        if type_ in ("cells", "rows"): self.rcm_menu.add_command(label="Delete Row(s)", command=lambda: self.placeholder_message())
+        if type_ in ("cells", "rows"): self.rcm_menu.add_command(label="Delete Row(s)", command=lambda: self.delete_selected_rows())
         if type_ == "columns" and column in (1, 2, 3, 4): self.rcm_menu.add_command(label="Clear All", command=lambda: self.placeholder_message())
 
         self.rcm_menu.tk_popup(event.x_root, event.y_root)
@@ -703,6 +704,43 @@ class App(TkinterDnD.Tk):
     # Заглушечное окно
     def placeholder_message(self):
         messagebox.showinfo("Work in progress", "Сорян Русик, эта фича ещё не работает ¯\_(ツ)_/¯")
+        
+    # Метод для удаления нод
+    def delete_selected_rows(self, event=None):
+        print(f"DELETE_ROWS START")
+        selection_info = self.get_selection_info()
+        selected_rows = selection_info["selected_rows"]
+        print(f"selected_rows: {selected_rows}")
+        print(f"self.items: {self.items}")
+        
+        # Получаем список имён нод которые планируем удалить
+        entry_names = []
+        for idx in selected_rows:
+            entry_names.append(self.items[idx]["entry_name"])
+        print(f"entry_names: ")
+        for entry_name in entry_names: print(f"{entry_name}")
+        
+        # Вы уверены что хотите удалить эти строки?
+        if not messagebox.askyesno(
+            "Deleting rows",
+            f"Are you sure you want to delete these {len(selected_rows)} rows?\n\n" +
+            "\n".join(entry_names)
+        ):
+            return
+        
+        for i in sorted(selected_rows, reverse=True):
+            del self.items[i]
+        
+        # return
+        
+        # for idx in selected_rows:
+            # self.items[idx][csvp] = new_value
+
+        # Апдейт таблицы и других приколов
+        self.update_table()
+        self.status_var.set(f"Removed {len(selected_rows)} rows!")
+        self.soundscript_saved = False
+        self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name if self.soundscript_name else 'Unsaved Soundscript'}*")
 
     # Метод для редактирования каналов одной или нескольких нод
     def edit_csvp(self, selected_rows, csvp):
