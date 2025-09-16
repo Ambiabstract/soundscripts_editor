@@ -9,11 +9,11 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.2.2"
+ABOUT_TOOL_VERSION = "0.2.3"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
-ABOUT_TOOL_REQUESTED = "Requested by Aptekarr."
+ABOUT_TOOL_REQUESTED = "Requested by Aptekarr (Ruslan Pozdnyakov)."
 ABOUT_TOOL_LINK = "Github: https://github.com/Ambiabstract/soundscripts_editor"
 ABOUT_TOOL_DISCORD = "Discord: @Ambiabstract"
 CACHE_PATH = "soundscripts_editor_cache.json"
@@ -691,9 +691,9 @@ class App(TkinterDnD.Tk):
         
         self.rcm_menu.add_separator()
         
-        if type_ == "cells" and column in (1, 2, 3, 4): self.rcm_menu.add_command(label="Clear Cell(s)", command=lambda: self.placeholder_message())
+        if type_ == "cells" and column in (3, 4): self.rcm_menu.add_command(label="Clear Cell(s)", command=lambda: self.clear_selected_cells())
+        if type_ == "columns" and column in (3, 4): self.rcm_menu.add_command(label="Clear All", command=lambda: self.clear_selected_cells())
         if type_ in ("cells", "rows"): self.rcm_menu.add_command(label="Delete Row(s)", command=lambda: self.delete_selected_rows())
-        if type_ == "columns" and column in (1, 2, 3, 4): self.rcm_menu.add_command(label="Clear All", command=lambda: self.placeholder_message())
 
         self.rcm_menu.tk_popup(event.x_root, event.y_root)
         # sel = self.sheet.get_currently_selected()
@@ -704,6 +704,41 @@ class App(TkinterDnD.Tk):
     # Заглушечное окно
     def placeholder_message(self):
         messagebox.showinfo("Work in progress", "Сорян Русик, эта фича ещё не работает ¯\_(ツ)_/¯")
+        
+    # Метод для очистки необязательных клеточек
+    def clear_selected_cells(self):
+        print(f"CLEAR_SELECTED_CELLS START")
+        selection_info = self.get_selection_info()
+        selected_rows = selection_info["selected_rows"]
+        column_volume_selected = selection_info["column_volume_selected"]
+        column_pitch_selected = selection_info["column_pitch_selected"]
+        print(f"selected_rows: {selected_rows}")
+        print(f"self.items: {self.items}")
+        
+        # Получаем список имён нод для которых планируем очистить клеточки
+        entry_names = []
+        for idx in selected_rows:
+            entry_names.append(self.items[idx]["entry_name"])
+        print(f"entry_names: ")
+        for entry_name in entry_names: print(f"{entry_name}")
+        
+        # Вы уверены что хотите очистить клеточки?
+        if not messagebox.askyesno(
+            "Clearing cells",
+            f"Are you sure you want to clear cells of these {len(selected_rows)} rows?\n\n" +
+            "\n".join(entry_names)
+        ):
+            return
+        
+        for idx in selected_rows:
+            self.items[idx]["volume"] = "" if column_volume_selected else self.items[idx]["volume"]
+            self.items[idx]["pitch"] = "" if column_pitch_selected else self.items[idx]["pitch"]
+
+        # Апдейт таблицы и других приколов
+        self.update_table()
+        self.status_var.set(f"Cleared cells for {len(selected_rows)} rows!")
+        self.soundscript_saved = False
+        self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name if self.soundscript_name else 'Unsaved Soundscript'}*")
         
     # Метод для удаления нод
     def delete_selected_rows(self, event=None):
@@ -730,11 +765,6 @@ class App(TkinterDnD.Tk):
         
         for i in sorted(selected_rows, reverse=True):
             del self.items[i]
-        
-        # return
-        
-        # for idx in selected_rows:
-            # self.items[idx][csvp] = new_value
 
         # Апдейт таблицы и других приколов
         self.update_table()
