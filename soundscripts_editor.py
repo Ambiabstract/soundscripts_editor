@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.2.3"
+ABOUT_TOOL_VERSION = "0.2.5"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -17,8 +17,14 @@ ABOUT_TOOL_REQUESTED = "Requested by Aptekarr (Ruslan Pozdnyakov)."
 ABOUT_TOOL_LINK = "Github: https://github.com/Ambiabstract/soundscripts_editor"
 ABOUT_TOOL_DISCORD = "Discord: @Ambiabstract"
 CACHE_PATH = "soundscripts_editor_cache.json"
-WINDOW_SIZE = "1024x720"
-COLUMN_WIDTHS = [(0, 200), (1, 100), (2, 100), (3, 100), (4, 100), (5, 385)]
+WINDOW_SIZE_DEFAULT = "1024x720"
+COLUMN_WIDTH_DENOMINATOR = 10 # делим ширину экрана в 10 раз чтобы получить базовую ширину столбца
+ENTRY_NAME_WIDTH_MULTIPLIER = 2
+CHANNEL_WIDTH_MULTIPLIER = 1
+SOUNDLEVEL_WIDTH_MULTIPLIER = 1
+VOLUME_WIDTH_MULTIPLIER = 1
+PITCH_WIDTH_MULTIPLIER = 1
+SOUNDS_WIDTH_MULTIPLIER = 3.6
 HEADERS = ["entry.name", "channel", "soundlevel", "volume", "pitch", "sounds"]
 BASE_ROW_HEIGHT = 22
 DEFAULT_CHANNEL = "CHAN_AUTO"
@@ -46,8 +52,11 @@ class App(TkinterDnD.Tk):
         
         # Основные переменные класса
         self.title(f"{ABOUT_TOOL_NAME}")
-        self.geometry(WINDOW_SIZE)
-        self.resizable(False, False)
+        self.geometry(WINDOW_SIZE_DEFAULT) # 1024x720
+        self.resizable(True, True)
+        self.minsize(800, 600)
+        # self.column_widths = COLUMN_WIDTHS_DEFAULT # [(0, 200), (1, 100), (2, 100), (3, 100), (4, 100), (5, 385)]
+        
         self.items = []  # список словарей в котором хранятся все нужные нам ноды
         self.gameinfo_path = None
         self.gameinfo_folder = None
@@ -60,10 +69,9 @@ class App(TkinterDnD.Tk):
         # Строим визуалочку окна, тулбара, нижней строчки
         self.build_main_ui()
         
-        gameinfo_path = self.load_cache()
-        if gameinfo_path:
-            # print(f"gameinfo_path from cache: {gameinfo_path}")
-            self.gameinfo_path = gameinfo_path
+        self.load_cache()
+        if self.gameinfo_path:
+            # print(f"gameinfo_path from cache: {self.gameinfo_path}")
             self.prepare_work()
 
     # Метод для создания основной визуальной части интерфейса (тулбар, кнопки, нижняя часть со статусной надписью)
@@ -151,8 +159,9 @@ class App(TkinterDnD.Tk):
             pass
 
         # Настройка ширины столбцов
-        for column, width in COLUMN_WIDTHS:
-            self.sheet.column_width(column, width)
+        # Если убрать то сломается ширина столбцов на старте
+        # Есть аналогичный код в redraw_sheet, без него сломается при открытии файла
+        self.update_column_widths()
 
         # Создаём кастомное контекстное меню
         self.rcm_menu = tk.Menu(self, tearoff=False)
@@ -170,6 +179,8 @@ class App(TkinterDnD.Tk):
         self.sheet.bind("<Control-S>", lambda event: self.save_soundscript(same_file=False))
         self.sheet.bind("<Return>", self.fast_edit)
         self.sheet.bind("<Delete>", self.delete_selected_rows)
+        
+        self.bind("<Configure>", self.on_configure)
         
         # Перехватывание закрытия окна
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -190,8 +201,9 @@ class App(TkinterDnD.Tk):
     # Метод визуальной перерисовки/апдейта таблицы для разных версий tksheet
     def redraw_sheet(self):
         # Настройка ширины столбцов
-        for column, width in COLUMN_WIDTHS:
-            self.sheet.column_width(column, width)
+        # Если убрать, то сломается при открытии саундскрипта или добавлении новых звуков
+        # Есть аналогичный код в build_table_ui, если его не будет то сломается визуал при старте до открытия файла
+        self.update_column_widths()
         
         try:
             # Явное обновление заголовков
@@ -278,6 +290,29 @@ class App(TkinterDnD.Tk):
         # Апдейт статусной надписи
         self.status_var.set(f"Rows count: {len(self.items)}")
 
+    # Вызывается каждый раз когда меняется конфигурация окна, нужно для вызова при изменении размеров окна
+    def on_configure(self, event):
+        # print(f"Новый размер: {event.width}x{event.height}")
+        # print(f"zalupa")
+        self.update_column_widths()
+    
+    # Метод для апдейта ширины колонн
+    def update_column_widths(self):
+        width = self.winfo_width()
+        # height = self.winfo_height()
+        column_width_pix = width/COLUMN_WIDTH_DENOMINATOR # примерно 100 при 1024
+        
+        column_widths_dyn = [
+            (0, column_width_pix * ENTRY_NAME_WIDTH_MULTIPLIER), 
+            (1, column_width_pix * CHANNEL_WIDTH_MULTIPLIER), 
+            (2, column_width_pix * SOUNDLEVEL_WIDTH_MULTIPLIER), 
+            (3, column_width_pix * VOLUME_WIDTH_MULTIPLIER), 
+            (4, column_width_pix * PITCH_WIDTH_MULTIPLIER), 
+            (5, column_width_pix * SOUNDS_WIDTH_MULTIPLIER)
+        ]
+        for column, width in column_widths_dyn:
+            self.sheet.column_width(column, int(round(width)))
+    
     # Метод для добавления в таблицу файлов которые были кинуты драг н дропом или через браузер файлов
     def add_sounds_button(self):
         print(f"add_sounds_button start")
@@ -900,19 +935,26 @@ class App(TkinterDnD.Tk):
         # print(f"cache_path: {cache_path}")
         try:
             gameinfo_path = Path(json.loads(cache_path.read_text(encoding="utf-8"))[0].get("gameinfo_path"))
+            window_size = json.loads(cache_path.read_text(encoding="utf-8"))[1].get("window_size")
             # print(f"gameinfo_path: {gameinfo_path}")
-            if gameinfo_path.exists(): return gameinfo_path
-            return None
+            # print(f"window_size: {window_size}")
+            if gameinfo_path.exists(): self.gameinfo_path = gameinfo_path
+            self.geometry(window_size if window_size else WINDOW_SIZE_DEFAULT)
+            return
         except Exception as e:
             print(f"Failed to load cache!")
             print(f"Exception:")
             print(e)
-            return None
+            return
     
     # Метод для сохранения кэша в файл
     def save_cache(self) -> bool:
+        width = self.winfo_width()
+        height = self.winfo_height()
+        window_size = f"{width}x{height}"
         json_dumps_content = [
-            {"gameinfo_path": str(self.gameinfo_path)}
+            {"gameinfo_path": str(self.gameinfo_path)},
+            {"window_size": window_size},
         ]
         try:
             Path(CACHE_PATH).write_text(json.dumps(json_dumps_content, indent=2), encoding="utf-8")
@@ -986,6 +1028,7 @@ class App(TkinterDnD.Tk):
         self.soundscript_path = ss_path
         self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name}")
         self.soundscript_saved = True
+        self.save_cache() # Сохраняемся
         self.status_var.set(f"{self.soundscript_name} successfully saved!")
         return ss_path
     
@@ -1080,12 +1123,16 @@ class App(TkinterDnD.Tk):
             )
             if answer:  # Да, сохраняем
                 self.save_soundscript(same_file=True)
+                self.save_cache() # Сохраняемся
                 self.destroy()
             elif answer is False:  # Нет, выходим без сохранения
+                self.save_cache() # Сохраняемся
                 self.destroy()
             else:  # Отмена - остаёмся в приложении
+                self.save_cache() # Сохраняемся
                 return
         else:
+            self.save_cache() # Сохраняемся
             self.destroy()
 
 # Класс диалогового окна для редактирования csvp
