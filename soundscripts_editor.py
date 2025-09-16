@@ -9,7 +9,7 @@ import re
 from typing import List, Dict, Any
 
 # Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.2.5"
+ABOUT_TOOL_VERSION = "0.2.6"
 ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -109,6 +109,16 @@ class App(TkinterDnD.Tk):
         self.btn_about.pack(
             side=tk.RIGHT, padx=(0, 0)
         )
+        self.btn_search = ttk.Button(self.toolbar, text="Find Next", command=lambda: self.find_next(search_text=self.search_entry.get()))
+        self.btn_search.pack(
+            side=tk.RIGHT, padx=(0, 0)
+        )
+        
+        # Поле ввода для панели поиска
+        self.search_entry = tk.Entry(self.toolbar, width=100)
+        self.search_entry.pack(
+            side=tk.RIGHT, padx=2, pady=0
+        )
         
         # Анонсируем и размещаем статусную надпись со всякими подсказками
         self.status_var = tk.StringVar(value="Please set up Gameinfo!")
@@ -180,6 +190,11 @@ class App(TkinterDnD.Tk):
         self.sheet.bind("<Return>", self.fast_edit)
         self.sheet.bind("<Delete>", self.delete_selected_rows)
         
+        # Хоткей для фокуса на панели поиска
+        self.sheet.bind("<Control-f>", lambda event: self.search_entry.focus_set())
+        self.search_entry.bind("<Return>", lambda event: self.find_next(search_text=self.search_entry.get()))
+        
+        # Бинд на изменение состояния окна, нужен для обновления ширины столбцов при изменении размеров окна
         self.bind("<Configure>", self.on_configure)
         
         # Перехватывание закрытия окна
@@ -807,6 +822,15 @@ class App(TkinterDnD.Tk):
         self.soundscript_saved = False
         self.title(f"{ABOUT_TOOL_NAME} | {self.project_name} - {self.soundscript_name if self.soundscript_name else 'Unsaved Soundscript'}*")
 
+    # Метод для поиска текста в таблице и перехода к клеточке где текст был найден
+    def find_next(self, search_text=None, event=None):
+        print(f"FIND_NEXT START")
+        if not search_text: return
+        print(f"search_text: {search_text}")
+        
+        # найти и выделить следующее совпадение - встроенная фича tksheet
+        self.sheet.next_match(find=search_text)
+    
     # Метод для редактирования каналов одной или нескольких нод
     def edit_csvp(self, selected_rows, csvp):
         print(f" ")
