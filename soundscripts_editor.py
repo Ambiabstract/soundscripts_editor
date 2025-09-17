@@ -824,7 +824,10 @@ class App(TkinterDnD.Tk):
     # Метод для сетапа гейминфо
     def set_gameinfo(self):
         # тут логика чтобы выбрать гейминфо через браузер
-        self.gameinfo_path = Path(self.open_files_dialog(title="Open Gameinfo.txt", filter_str="Text (gameinfo.txt);;All (*)", multi=False)[0])
+        try:
+            self.gameinfo_path = Path(self.open_files_dialog(title="Open Gameinfo.txt", filter_str="Text (gameinfo.txt);;All (*)", multi=False)[0])
+        except Exception:
+            pass
         # print(f"self.gameinfo_path SET GAMEINFO: {self.gameinfo_path}")
 
         # Если гейминфо выбран и назначен удачно то идём дальше 
