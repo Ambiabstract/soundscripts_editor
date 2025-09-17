@@ -122,6 +122,16 @@ DARK = {
     "btn_focuscolor": "#808080",    # цвет пунктирной фигни на кнопках
 }
 
+# Функция назначения иконок для всех окон
+def setup_icons(root):
+    if sys.platform.startswith("win"):
+        root.iconbitmap(default=os.path.abspath("soundscripts_editor.ico"))
+    else:
+        # для Linux/macOS лучше PNG через iconphoto
+        from tkinter import PhotoImage
+        img = PhotoImage(file="soundscripts_editor.png")
+        root.iconphoto(True, img)
+
 # Особая уличная магия для чёрной шапки окна
 if sys.platform == "win32":
     import ctypes
@@ -1781,6 +1791,7 @@ def themed_askstring(app, title, prompt, **kwargs):
 
 def main():
     app = App()
+    setup_icons(app)
     app.mainloop()
 
 try:
