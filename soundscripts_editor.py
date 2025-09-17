@@ -8,47 +8,322 @@ from pathlib import Path
 import re
 from typing import List, Dict, Any
 
-# Основные константы на чтение
-ABOUT_TOOL_VERSION = "0.2.6"
-ABOUT_TOOL_NAME = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
-ABOUT_TOOL_DESCRIPTION = "This tool helps to edit soundscripts files used on Source Engine."
-ABOUT_TOOL_AUTHOR = "Shitcoded by Ambiabstract (Sergey Shavin)."
-ABOUT_TOOL_REQUESTED = "Requested by Aptekarr (Ruslan Pozdnyakov)."
-ABOUT_TOOL_LINK = "Github: https://github.com/Ambiabstract/soundscripts_editor"
-ABOUT_TOOL_DISCORD = "Discord: @Ambiabstract"
+# Константы о программе
+ABOUT_TOOL_VERSION      = "0.2.8"
+ABOUT_TOOL_NAME         = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
+ABOUT_TOOL_DESCRIPTION  = "This tool helps to edit soundscripts files used on Source Engine."
+ABOUT_TOOL_AUTHOR       = "Shitcoded by Ambiabstract (Sergey Shavin)."
+ABOUT_TOOL_REQUESTED    = "Requested by Aptekarr (Ruslan Pozdnyakov)."
+ABOUT_TOOL_LINK         = "Github: https://github.com/Ambiabstract/soundscripts_editor"
+ABOUT_TOOL_DISCORD      = "Discord: @Ambiabstract"
+
+# Константы технические
 CACHE_PATH = "soundscripts_editor_cache.json"
 WINDOW_SIZE_DEFAULT = "1024x720"
-COLUMN_WIDTH_DENOMINATOR = 10 # делим ширину экрана в 10 раз чтобы получить базовую ширину столбца
-ENTRY_NAME_WIDTH_MULTIPLIER = 2
-CHANNEL_WIDTH_MULTIPLIER = 1
-SOUNDLEVEL_WIDTH_MULTIPLIER = 1
-VOLUME_WIDTH_MULTIPLIER = 1
-PITCH_WIDTH_MULTIPLIER = 1
-SOUNDS_WIDTH_MULTIPLIER = 3.6
+
+# Константы для корректного визуала таблицы
 HEADERS = ["entry.name", "channel", "soundlevel", "volume", "pitch", "sounds"]
-BASE_ROW_HEIGHT = 22
-DEFAULT_CHANNEL = "CHAN_AUTO"
-DEFAULT_SOUNDLEVEL = "SNDLVL_IDLE"
-DEFAULT_VOLUME = "1"
-DEFAULT_PITCH = "PITCH_NORM"
+COLUMN_WIDTH_DENOMINATOR    = 10 # делим ширину экрана в 10 раз чтобы получить базовую ширину столбца
+ENTRY_NAME_WIDTH_MULTIPLIER = 2
+CHANNEL_WIDTH_MULTIPLIER    = 1
+SOUNDLEVEL_WIDTH_MULTIPLIER = 1
+VOLUME_WIDTH_MULTIPLIER     = 1
+PITCH_WIDTH_MULTIPLIER      = 1
+SOUNDS_WIDTH_MULTIPLIER     = 3.6
+BASE_ROW_HEIGHT = 22 # дефолтная высота строки, вроде бы в пикселях
+
+# Константы дефолтных значений настроек саундскрипта
+DEFAULT_CHANNEL     = "CHAN_AUTO"
+DEFAULT_SOUNDLEVEL  = "SNDLVL_IDLE"
+DEFAULT_VOLUME      = "1"
+DEFAULT_PITCH       = "PITCH_NORM"
 CHANNELS_LIST = [
-    "CHAN_AUTO", "CHAN_WEAPON", "CHAN_VOICE", "CHAN_VOICE2", "CHAN_ITEM", "CHAN_BODY", "CHAN_STREAM", "CHAN_REPLACE", "CHAN_STATIC", "CHAN_VOICE_BASE"
+    "CHAN_AUTO", 
+    "CHAN_WEAPON", 
+    "CHAN_VOICE", 
+    "CHAN_VOICE2", 
+    "CHAN_ITEM", 
+    "CHAN_BODY", 
+    "CHAN_STREAM", 
+    "CHAN_REPLACE", 
+    "CHAN_STATIC", 
+    "CHAN_VOICE_BASE"
 ]
 SNDLVLS_LIST  = [
-    "SNDLVL_NONE", "SNDLVL_20dB", "SNDLVL_25dB", "SNDLVL_30dB", "SNDLVL_35dB", "SNDLVL_40dB",
-            "SNDLVL_45dB", "SNDLVL_50dB", "SNDLVL_55dB", "SNDLVL_IDLE", "SNDLVL_TALKING", "SNDLVL_65dB",
-            "SNDLVL_STATIC", "SNDLVL_70dB", "SNDLVL_NORM", "SNDLVL_75dB", "SNDLVL_80dB", "SNDLVL_85dB",
-            "SNDLVL_90dB", "SNDLVL_95dB", "SNDLVL_100dB", "SNDLVL_105dB", "SNDLVL_110dB", "SNDLVL_120dB",
-            "SNDLVL_130dB", "SNDLVL_GUNFIRE", "SNDLVL_140dB", "SNDLVL_150dB", "SNDLVL_180dB"
+    "SNDLVL_NONE", 
+    "SNDLVL_20dB", 
+    "SNDLVL_25dB", 
+    "SNDLVL_30dB", 
+    "SNDLVL_35dB", 
+    "SNDLVL_40dB",
+    "SNDLVL_45dB", 
+    "SNDLVL_50dB", 
+    "SNDLVL_55dB", 
+    "SNDLVL_IDLE", 
+    "SNDLVL_TALKING", 
+    "SNDLVL_65dB",
+    "SNDLVL_STATIC", 
+    "SNDLVL_70dB", 
+    "SNDLVL_NORM", 
+    "SNDLVL_75dB", 
+    "SNDLVL_80dB", 
+    "SNDLVL_85dB",
+    "SNDLVL_90dB", 
+    "SNDLVL_95dB", 
+    "SNDLVL_100dB", 
+    "SNDLVL_105dB", 
+    "SNDLVL_110dB", 
+    "SNDLVL_120dB",
+    "SNDLVL_130dB", 
+    "SNDLVL_GUNFIRE", 
+    "SNDLVL_140dB", 
+    "SNDLVL_150dB", 
+    "SNDLVL_180dB",
 ]
 VOLUME_LIST = ["0.1", "0.2", "0.3", "0.4", "0.5", "0.6", "0.7", "0.8", "0.9", "1", "0.1, 0.9", "0.2, 0.8", "0.3, 0.7", "0.4, 0.6", "0.5, 1"]
 PITCH_LIST = ["10", "20", "30", "40", "50", "60", "70", "80", "90", "PITCH_LOW", "PITCH_NORM", "100", "110", "PITCH_HIGH", "120", "130", "140", "150", "160", "170", "180", "190", "200", "210", "220", "230", "240", "250", "95, 100", "100, 110"]
 
-# Класс приложения
+# Константы светлой или тёмной темы
+LIGHT = {
+    "bg": "#F5F5F5",
+    "surface": "#FFFFFF",
+    "surface_hi": "#F0F0F0",
+    "fg": "#1E1E1E",
+    "fg_muted": "#5A5A5A",
+    "border": "#DADADA",
+    "grid": "#E6E6E6",
+    "accent": "#3A7AFE",
+    "select_bg": "#D9E2FF",
+    "select_fg": "#0F172A",
+    "btn_bg": "#BFBFBF",
+    "btn_fg": "#191919",
+    "table_bg": "#262626",
+}
+DARK = {
+    "bg": "#444444",                # фон рамки окна
+    "surface": "#383838",           # фон выпадающего списка, строки поиска
+    "surface_hi": "#383838",        # информационные области таблицы (заголовки, левая панелька) 383838
+    "fg": "#E5E5E5",                # текст всего кроме информационных надписей таблицы
+    "fg_muted": "#DDDDDD",          # текст информационных надписей таблицы
+    "table_bg": "#2A2A2A",          # фон таблицы 262626
+    "border": "#808080",            # рамка таблицы
+    "grid": "#808080",              # сетка таблицы между клетками
+    "accent": "#00FF72",            # акцент выделения
+    "select_bg": "#595959",         # заполнение выделения таблицы 535353
+    "select_fg": "#DDDDDD",         # текст при выделении таблицы
+    "btn_bg": "#646464",            # кнопка в обычном состоянии
+    "btn_fg": "#E5E5E5",            # текст кнопки в обычном состоянии E5E5E5  DCDCDC
+    "btn_bg_hover": "#383838",      # кнопки при наведении
+    "btn_bg_pressed": "#808080",    # кнопки при нажатии 489168 00E563  
+    "btn_fg_pressed": "#FFFFFF",    # цвет кнопок при нажатии
+    "btn_bg_disabled": "#595959",   # кнопки выключенные
+    "btn_fg_disabled": "#8F8F8F",   # текст выключенных кнопок
+    "btn_focuscolor": "#808080",    # цвет пунктирной фигни на кнопках
+}
+
+# Класс менеджера тёмной/светлой темы
+class ThemeManager:
+    def __init__(self, app):
+        self.app = app # дружим менеджер темы с основным классом приложения
+        self.name = "light"  # по дефолту светлая, если в основном классе не указано
+        self.palettes = {"light": LIGHT, "dark": DARK} # два набора палитр под светлую и тёмную
+
+    # Метод который применяет желаемую тему
+    def apply(self, name: str):
+        self.name = name if name in self.palettes else "light" # если не названа тема то берём светлую
+        p = self.palettes[self.name]
+
+        # Окно заливается bg цветом из палитры p
+        self.app.configure(bg=p["bg"])
+
+        # Покраска с помощью ttk.Style
+        style = ttk.Style(self.app) # создаём стиль
+        base = "clam"  # базовая тема
+        theme_name = f"app-{self.name}" # имя для темы
+        # Конструируем тему на основе базовой
+        if theme_name not in style.theme_names():
+            style.theme_create(theme_name, parent=base, settings={
+                "TFrame":   {"configure": {"background": p["bg"]}},
+                "TLabel":   {"configure": {"background": p["bg"], "foreground": p["fg"]}},
+                "TButton":  {"configure": {
+                    "background": p["btn_bg"],
+                    "foreground": p["btn_fg"],
+                    "focuscolor": p["btn_focuscolor"],
+                    # "padding": (2, 2),
+                }},
+                "TEntry":   {"configure": {"fieldbackground": p["surface"], "foreground": p["fg"], "bordercolor": p["border"]}},
+                "TCombobox":{"configure": {"fieldbackground": p["surface"], "foreground": p["fg"], "background": p["surface"]}},
+                "Horizontal.TScrollbar": {"configure": {"background": p["surface_hi"]}},
+                "Vertical.TScrollbar":   {"configure": {"background": p["surface_hi"]}},
+            })
+        style.theme_use(theme_name)
+        
+        # Карта состояний для кнопок: disabled / active (hover) / pressed
+        style.map("TButton",
+            foreground=[
+                ("disabled", p["btn_fg_disabled"]),
+                ("pressed",  p["btn_fg_pressed"]),
+            ],
+            background=[
+                ("disabled", p["btn_bg_disabled"]),
+                ("pressed",  p["btn_bg_pressed"]),
+                ("active",   p["btn_bg_hover"]),
+            ],
+            relief=[
+                ("pressed", "sunken"),
+                ("!pressed", "flat"),
+            ],
+            cursor=[
+                ("disabled", "arrow"),
+                ("!disabled", "hand2"),
+            ]
+        )
+
+        # option_add для tk-виджетов (покраска всплывающих окон)
+        self.app.option_add("*Foreground", p["fg"])
+        self.app.option_add("*Background", p["bg"])
+        self.app.option_add("*Entry.Background", p["surface"])
+        self.app.option_add("*Entry.Foreground", p["fg"])
+        self.app.option_add("*Listbox.Background", p["surface"])
+        self.app.option_add("*Listbox.Foreground", p["fg"])
+        self.app.option_add("*Menu.Background", p["surface_hi"])
+        self.app.option_add("*Menu.Foreground", p["fg"])
+
+        # Прокрасить уже созданные простые tk-виджеты
+        # Вызывает фатал там где я использую не tk.Frame, а ttk.Frame. Но скорее всего уже исправлено
+        try:
+            self._paint_existing_tk()
+        except Exception:
+            pass
+
+        # Покраска tksheet таблицы
+        if hasattr(self.app, "sheet"):
+            try:
+                self.app.sheet.set_options(
+                    # общий фон контейнера и таблицы
+                    frame_bg=p["bg"],
+                    table_bg=p["table_bg"],
+                    table_fg=p["fg"],
+                    table_grid_fg=p["grid"],
+
+                    # выделения
+                    table_selected_cells_bg=p["select_bg"],
+                    table_selected_cells_fg=p["select_fg"],
+                    table_selected_rows_bg=p["select_bg"],
+                    table_selected_rows_fg=p["select_fg"],
+                    table_selected_columns_bg=p["select_bg"],
+                    table_selected_columns_fg=p["select_fg"],
+                    table_selected_cells_border_fg=p["accent"],
+                    table_selected_rows_border_fg=p["accent"],
+                    table_selected_columns_border_fg=p["accent"],
+                    table_selected_box_cells_fg=p["accent"],
+                    table_selected_box_rows_fg=p["accent"],
+                    table_selected_box_columns_fg=p["accent"],
+
+                    # редакторы (новые ключи с 7.2.23)
+                    table_editor_bg=p["surface"],
+                    table_editor_fg=p["fg"],
+                    table_editor_select_bg=p["select_bg"],
+                    table_editor_select_fg=p["select_fg"],
+
+                    # хедер / индекс
+                    header_bg=p["surface_hi"],
+                    header_fg=p["fg_muted"],
+                    header_grid_fg=p["grid"],
+                    header_selected_cells_bg=p["select_bg"],
+                    header_selected_cells_fg=p["select_fg"],
+                    header_selected_columns_bg=p["select_bg"],
+                    header_selected_columns_fg=p["select_fg"],
+                    header_editor_bg=p["surface"],
+                    header_editor_fg=p["fg"],
+                    header_editor_select_bg=p["select_bg"],
+                    header_editor_select_fg=p["select_fg"],
+
+                    index_bg=p["surface_hi"],
+                    index_fg=p["fg_muted"],
+                    index_grid_fg=p["grid"],
+                    index_selected_cells_bg=p["select_bg"],
+                    index_selected_cells_fg=p["select_fg"],
+                    index_selected_rows_bg=p["select_bg"],
+                    index_selected_rows_fg=p["select_fg"],
+                    index_editor_bg=p["surface"],
+                    index_editor_fg=p["fg"],
+                    index_editor_select_bg=p["select_bg"],
+                    index_editor_select_fg=p["select_fg"],
+
+                    # угол и обводки
+                    top_left_bg=p["surface_hi"],
+                    top_left_fg=p["fg_muted"],
+                    top_left_fg_highlight=p["fg"],
+                    outline_color=p["border"],
+                    outline_thickness=1,
+                    resizing_line_fg=p["border"],
+                    drag_and_drop_bg=p["accent"],
+
+                    # попап-меню
+                    popup_menu_bg=p["surface"],
+                    popup_menu_fg=p["fg"],
+                    popup_menu_highlight_bg=p["select_bg"],
+                    popup_menu_highlight_fg=p["select_fg"],
+
+                    # скроллбары
+                    vertical_scroll_background=p["surface_hi"],
+                    horizontal_scroll_background=p["surface_hi"],
+                    vertical_scroll_troughcolor=p["bg"],
+                    horizontal_scroll_troughcolor=p["bg"],
+                    vertical_scroll_lightcolor=p["surface_hi"],
+                    horizontal_scroll_lightcolor=p["surface_hi"],
+                    vertical_scroll_darkcolor=p["border"],
+                    horizontal_scroll_darkcolor=p["border"],
+                    vertical_scroll_bordercolor=p["bg"],
+                    horizontal_scroll_bordercolor=p["bg"],
+                    vertical_scroll_active_bg=p["accent"],
+                    horizontal_scroll_active_bg=p["accent"],
+                    vertical_scroll_not_active_bg=p["surface_hi"],
+                    horizontal_scroll_not_active_bg=p["surface_hi"],
+                    vertical_scroll_pressed_bg=p["accent"],
+                    horizontal_scroll_pressed_bg=p["accent"],
+                )
+                self.app.redraw_sheet()
+            except Exception:
+                pass
+
+    # Страшный метод который ранее спотыкался на ttk.Frame виджетах, но вроде бы щас норм работает.
+    # Без него не красятся поля ввода текста, например строка поиска (потому что вызывается всё это добро после создания виджетов).
+    # Короче он красит существующие виджеты.
+    def _paint_existing_tk(self):
+        p = self.palettes[self.name] # палитра
+        # Тулбар
+        if hasattr(self.app, "toolbar"):
+            # НЕ трогаем ttk.Frame фоном
+            try:
+                if isinstance(self.app.toolbar, tk.Frame):
+                    self.app.toolbar.configure(bg=p["bg"])
+            except tk.TclError:
+                pass
+
+            for child in self.app.toolbar.winfo_children():
+                if isinstance(child, tk.Entry):
+                    child.configure(
+                        bg=p["surface"],
+                        fg=p["fg"],
+                        insertbackground=p["fg"],  # цвет каретки
+                        selectbackground=p["select_bg"],
+                        selectforeground=p["select_fg"],
+                        disabledbackground=p["surface_hi"],
+                        highlightthickness=1,
+                        highlightbackground=p["border"],  # рамка
+                        relief="flat",  # опционально: убрать бордюр платформы
+                    )
+
+# Основной класс приложения
 class App(TkinterDnD.Tk):
     # Конструктор класса - метод, который задаёт начальное состояние объекта сразу после его создания
     def __init__(self):
         super().__init__() # вызывает конструктор родительского класса TkinterDnD.Tk чтобы всё работало
+        # self.theme = "light"  # светлая тема по дефолту
+        self.theme = "dark"  # тёмная тема по дефолту
+        self.theme_mgr = ThemeManager(self) # подключаем менеджер тёмной/светлой темы
         
         # Основные переменные класса
         self.title(f"{ABOUT_TOOL_NAME}")
@@ -65,6 +340,10 @@ class App(TkinterDnD.Tk):
         self.soundscript_name = None
         self.soundscript_saved = True
         self.add_proj_name_to_entryname = False
+        
+        # Применяем тему если менеджер тем включен
+        # Если тут не включить то при первом запуске тема будет неправильной
+        if hasattr(self, "theme"): self.theme_mgr.apply(self.theme)
 
         # Строим визуалочку окна, тулбара, нижней строчки
         self.build_main_ui()
@@ -79,45 +358,47 @@ class App(TkinterDnD.Tk):
         # Виджет тулбара
         self.toolbar = ttk.Frame(self, padding=(2, 2, 2, 2)) # слева, сверху, справа, снизу
         self.toolbar.pack(side=tk.TOP, fill=tk.X)
+        
+        buttons_padx = (2, 2)
 
         # Кнопки тулбара
         self.btn_new_ss = ttk.Button(self.toolbar, text="New Soundscript", command=self.new_soundscript, state="disabled")
         self.btn_new_ss.pack(
-            side=tk.LEFT, padx=(0, 0)
+            side=tk.LEFT, padx=buttons_padx
         )
         self.btn_open_ss = ttk.Button(self.toolbar, text="Open Soundscript", command=self.open_soundscript_dialog, state="disabled")
         self.btn_open_ss.pack(
-            side=tk.LEFT, padx=(0, 0)
+            side=tk.LEFT, padx=buttons_padx
         )
-        self.btn_save_ss = ttk.Button(self.toolbar, text="Save", command=lambda: self.save_soundscript(same_file=True), state="disabled")
+        self.btn_save_ss = ttk.Button(self.toolbar, text="     Save     ", command=lambda: self.save_soundscript(same_file=True), state="disabled")
         self.btn_save_ss.pack(
-            side=tk.LEFT, padx=(0, 0)
+            side=tk.LEFT, padx=buttons_padx
         )
-        self.btn_save_ss_as = ttk.Button(self.toolbar, text="Save As...", command=self.save_soundscript, state="disabled")
+        self.btn_save_ss_as = ttk.Button(self.toolbar, text="  Save As...  ", command=self.save_soundscript, state="disabled")
         self.btn_save_ss_as.pack(
-            side=tk.LEFT, padx=(0, 0)
+            side=tk.LEFT, padx=buttons_padx
         )
-        self.btn_add_sounds = ttk.Button(self.toolbar, text="Add Sounds", command=self.add_sounds_button, state="disabled")
+        self.btn_add_sounds = ttk.Button(self.toolbar, text="  Add Sounds  ", command=self.add_sounds_button, state="disabled")
         self.btn_add_sounds.pack(
-            side=tk.LEFT, padx=(0, 0)
+            side=tk.LEFT, padx=buttons_padx
         )
         self.btn_set_gi = ttk.Button(self.toolbar, text="Set Gameinfo.txt", command=self.set_gameinfo)
         self.btn_set_gi.pack(
-            side=tk.LEFT, padx=(0, 0)
+            side=tk.LEFT, padx=buttons_padx
         )
-        self.btn_about = ttk.Button(self.toolbar, text="About", command=self.about_window)
+        self.btn_about = ttk.Button(self.toolbar, text="  About  ", command=self.about_window)
         self.btn_about.pack(
-            side=tk.RIGHT, padx=(0, 0)
+            side=tk.RIGHT, padx=buttons_padx
         )
-        self.btn_search = ttk.Button(self.toolbar, text="Find Next", command=lambda: self.find_next(search_text=self.search_entry.get()))
+        self.btn_search = ttk.Button(self.toolbar, text=" Find Next ", command=lambda: self.find_next(search_text=self.search_entry.get()), state="disabled")
         self.btn_search.pack(
-            side=tk.RIGHT, padx=(0, 0)
+            side=tk.RIGHT, padx=buttons_padx
         )
         
         # Поле ввода для панели поиска
         self.search_entry = tk.Entry(self.toolbar, width=100)
         self.search_entry.pack(
-            side=tk.RIGHT, padx=2, pady=0
+            side=tk.RIGHT, padx=2, pady=2
         )
         
         # Анонсируем и размещаем статусную надпись со всякими подсказками
@@ -573,6 +854,9 @@ class App(TkinterDnD.Tk):
             self.build_table_ui() # Постройка и активация таблицы
             self.setup_dnd() # Активация драг н дропа файлов в окно и таблицу
         
+        # Применяем тему если менеджер тем включен
+        if hasattr(self, "theme"): self.theme_mgr.apply(self.theme)
+        
         # Обновляем статусную строчку
         self.status_var.set(f"Ready for work! Add new WAV files or open an existing soundscript file.")
     
@@ -602,6 +886,7 @@ class App(TkinterDnD.Tk):
         self.btn_save_ss.state(["!disabled"])
         self.btn_save_ss_as.state(["!disabled"])
         self.btn_add_sounds.state(["!disabled"])
+        self.btn_search.state(["!disabled"])
 
     # Метод который происходит при драг н дропе файлов на окно или таблицу
     def on_drop(self, event):
