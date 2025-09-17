@@ -7,9 +7,10 @@ import json
 from pathlib import Path
 import re
 from typing import List, Dict, Any
+import sys
 
 # Константы о программе
-ABOUT_TOOL_VERSION      = "0.2.8"
+ABOUT_TOOL_VERSION      = "0.2.9"
 ABOUT_TOOL_NAME         = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION  = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR       = "Shitcoded by Ambiabstract (Sergey Shavin)."
@@ -120,6 +121,49 @@ DARK = {
     "btn_fg_disabled": "#8F8F8F",   # текст выключенных кнопок
     "btn_focuscolor": "#808080",    # цвет пунктирной фигни на кнопках
 }
+
+# Особая уличная магия для чёрной шапки окна
+if sys.platform == "win32":
+    import ctypes
+    from ctypes import wintypes
+    _u32 = ctypes.windll.user32
+    _dwm = ctypes.windll.dwmapi
+
+    _u32.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]
+    _u32.GetAncestor.restype  = wintypes.HWND
+    GA_ROOT = 2
+
+    def _top_level_hwnd(hwnd):
+        # Страхуемся: берём корневой (топ-левел) HWND
+        return _u32.GetAncestor(wintypes.HWND(hwnd), GA_ROOT) or hwnd
+
+    def _set_immersive_dark_mode(hwnd: int, enabled: bool) -> bool:
+        v = ctypes.c_int(1 if enabled else 0)
+        for attr in (20, 19):  # Win11/10 1903+ и 1809
+            hr = _dwm.DwmSetWindowAttribute(
+                wintypes.HWND(hwnd),
+                ctypes.c_uint(attr),
+                ctypes.byref(v),
+                ctypes.sizeof(v),
+            )
+            if hr == 0:
+                return True
+        return False
+else:
+    def _top_level_hwnd(hwnd): return hwnd
+    def _set_immersive_dark_mode(hwnd: int, enabled: bool) -> bool: return False
+
+def enable_win_dark_titlebar(tk_window, enable: bool = True) -> None:
+    # Вызывать после отображения окна (или привязать к <Map>)
+    if sys.platform != "win32":
+        return
+    try:
+        tk_window.update_idletasks()
+        hwnd = tk_window.winfo_id()
+        hwnd = _top_level_hwnd(hwnd)
+        _set_immersive_dark_mode(hwnd, enable)
+    except Exception:
+        pass
 
 # Класс менеджера тёмной/светлой темы
 class ThemeManager:
@@ -287,6 +331,13 @@ class ThemeManager:
                 self.app.redraw_sheet()
             except Exception:
                 pass
+                
+        # Особая уличная магия для чёрной шапки окна
+        try:
+            dark_win_result = enable_win_dark_titlebar(self.app, enable=(self.name == "dark"))
+            print(f"dark_win_result: {dark_win_result}")
+        except Exception:
+            pass
 
     # Страшный метод который ранее спотыкался на ttk.Frame виджетах, но вроде бы щас норм работает.
     # Без него не красятся поля ввода текста, например строка поиска (потому что вызывается всё это добро после создания виджетов).
@@ -347,6 +398,9 @@ class App(TkinterDnD.Tk):
 
         # Строим визуалочку окна, тулбара, нижней строчки
         self.build_main_ui()
+        
+        # Особая уличная магия для чёрной шапки окна
+        self.bind("<Map>", lambda e: enable_win_dark_titlebar(self, enable=(self.theme == "dark")))
         
         self.load_cache()
         if self.gameinfo_path:
@@ -1185,6 +1239,16 @@ class App(TkinterDnD.Tk):
             # Без этой штуки фокус каждого нового окна слетает начиная со второго
             self.update()
             
+            # Ебанутая попытка покрасить шапку этого окна в тёмный
+            '''
+            new_entry_name = themed_askstring(
+                app = self,
+                title = "New name",
+                prompt = "Please enter a new entry.name:\t\t\t\n",
+                initialvalue = init_name,
+                parent = self
+            )
+            '''
             new_entry_name = simpledialog.askstring(
                 "New name",
                 "Please enter a new entry.name:\t\t\t\n",
@@ -1506,6 +1570,9 @@ class ChoiceDialog(tk.Toplevel):
         x = (ws // 2) - (w // 2)
         y = (hs // 2) - (h // 2)
         self.geometry(f"{w}x{h}+{x}+{y}")
+        
+        # Особая уличная магия для чёрной шапки окна
+        enable_win_dark_titlebar(self, enable=(parent.theme == "dark"))
 
         # Ждать закрытия
         self.wait_window()
@@ -1585,6 +1652,9 @@ class SoundsListEdit(tk.Toplevel):
         x = (ws // 2) - (w // 2)
         y = (hs // 2) - (h // 2)
         self.geometry(f"{w}x{h}+{x}+{y}")
+        
+        # Особая уличная магия для чёрной шапки окна
+        enable_win_dark_titlebar(self, enable=(parent.theme == "dark"))
 
         # Ждать закрытия
         self.wait_window()
@@ -1672,6 +1742,42 @@ class SoundsListEdit(tk.Toplevel):
 
     def on_cancel(self):
         self.destroy()
+
+
+# Ебанутые попытки покрасить в тёмный цвет шапку окна редактирования имени ноды
+def themed_askstring(app, title, prompt, initialvalue, **kwargs):
+    kwargs["parent"] = app
+    # до вызова: список уже существующих Toplevel
+    before = set(app.winfo_children())
+    # result = simpledialog.askstring(title, prompt, initialvalue, **kwargs)
+    result = simpledialog.askstring(
+                title = title,
+                prompt = prompt,
+                initialvalue = initialvalue,
+                # parent = app,
+                **kwargs
+            )
+    # после вызова: смотрим новые окна
+    after = set(app.winfo_children())
+    new_windows = after - before
+    for win in new_windows:
+        if isinstance(win, tk.Toplevel):
+            enable_win_dark_titlebar(win, enable=(app.theme == "dark"))
+    return result
+'''
+def themed_askstring(app, title, prompt, **kwargs):
+    kwargs["parent"] = app
+    # до вызова: список уже существующих Toplevel
+    before = set(app.winfo_children())
+    result = sd.askstring(title, prompt, **kwargs)
+    # после вызова: смотрим новые окна
+    after = set(app.winfo_children())
+    new_windows = after - before
+    for win in new_windows:
+        if isinstance(win, tk.Toplevel):
+            enable_win_dark_titlebar(win, enable=(app.theme == "dark"))
+    return result
+'''
 
 def main():
     app = App()
