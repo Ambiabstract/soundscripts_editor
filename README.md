@@ -35,6 +35,7 @@ The program is especially useful for mod developers working with Source Engine.
 4. Enjoy editing soundscripts!
 
 ## Future plans
+- Undo and Redo
 - Edit Sound Characters (*, #, @, >, etc.)
 - Drag-and-drop support for Edit Sounds window
 - Dark and Light themes
