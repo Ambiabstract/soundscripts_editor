@@ -34,6 +34,14 @@ The program is especially useful for mod developers working with Source Engine.
 3. Set the gameinfo.txt file of your project.
 4. Enjoy editing soundscripts!
 
+## Future plans
+- Edit Sound Characters (*, #, @, >, etc.)
+- Drag-and-drop support for Edit Sounds window
+- Dark and Light themes
+- More hotkeys
+- Function to add an entry prefix to selected names
+- Go to a specific number/index feature
+
 ## Screenshots
 <img width="381" height="311" alt="изображение" src="https://github.com/user-attachments/assets/34b56d80-0ffe-400e-ac6c-6a3a86c69b4c" />
 
