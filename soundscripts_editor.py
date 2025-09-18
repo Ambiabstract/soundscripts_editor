@@ -8,14 +8,16 @@ from pathlib import Path
 import re
 from typing import List, Dict, Any
 import sys
+import webbrowser
 
 # Константы о программе
-ABOUT_TOOL_VERSION      = "0.2.9"
+ABOUT_TOOL_VERSION      = "0.3.0"
 ABOUT_TOOL_NAME         = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION  = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR       = "Shitcoded by Ambiabstract (Sergey Shavin)."
 ABOUT_TOOL_REQUESTED    = "Requested by Aptekarr (Ruslan Pozdnyakov)."
 ABOUT_TOOL_LINK         = "Github: https://github.com/Ambiabstract/soundscripts_editor"
+ABOUT_TOOL_LINK_2       = "https://github.com/Ambiabstract/soundscripts_editor"
 ABOUT_TOOL_DISCORD      = "Discord: @Ambiabstract"
 
 # Константы технические
@@ -122,15 +124,16 @@ DARK = {
     "btn_focuscolor": "#808080",    # цвет пунктирной фигни на кнопках
 }
 
+# Функции чтобы вытаскивать ресурсы из экзешника
+def resource_path(name: str) -> str:
+    base = getattr(sys, "_MEIPASS", Path(__file__).parent)
+    return str(Path(base) / name)
+
 # Функция назначения иконок для всех окон
-def setup_icons(root):
-    if sys.platform.startswith("win"):
-        root.iconbitmap(default=os.path.abspath("soundscripts_editor.ico"))
-    else:
-        # для Linux/macOS лучше PNG через iconphoto
-        from tkinter import PhotoImage
-        img = PhotoImage(file="soundscripts_editor.png")
-        root.iconphoto(True, img)
+def setup_icons(root: tk.Tk):
+    img = tk.PhotoImage(file=resource_path("soundscripts_editor.png"))
+    root.iconphoto(True, img)
+    root._icon_ref = img 
 
 # Особая уличная магия для чёрной шапки окна
 if sys.platform == "win32":
@@ -450,7 +453,7 @@ class App(TkinterDnD.Tk):
         self.btn_set_gi.pack(
             side=tk.LEFT, padx=buttons_padx
         )
-        self.btn_about = ttk.Button(self.toolbar, text="  About  ", command=self.about_window)
+        self.btn_about = ttk.Button(self.toolbar, text="  About  ", command=lambda: AboutWindow(self))
         self.btn_about.pack(
             side=tk.RIGHT, padx=buttons_padx
         )
@@ -1753,8 +1756,8 @@ class SoundsListEdit(tk.Toplevel):
     def on_cancel(self):
         self.destroy()
 
-
 # Ебанутые попытки покрасить в тёмный цвет шапку окна редактирования имени ноды
+'''
 def themed_askstring(app, title, prompt, initialvalue, **kwargs):
     kwargs["parent"] = app
     # до вызова: список уже существующих Toplevel
@@ -1775,6 +1778,7 @@ def themed_askstring(app, title, prompt, initialvalue, **kwargs):
             enable_win_dark_titlebar(win, enable=(app.theme == "dark"))
     return result
 '''
+'''
 def themed_askstring(app, title, prompt, **kwargs):
     kwargs["parent"] = app
     # до вызова: список уже существующих Toplevel
@@ -1788,6 +1792,126 @@ def themed_askstring(app, title, prompt, **kwargs):
             enable_win_dark_titlebar(win, enable=(app.theme == "dark"))
     return result
 '''
+
+# Класс окна с инфой о программе
+class AboutWindow(tk.Toplevel):
+    def __init__(self, parent):
+        super().__init__(parent)
+        self.title("About")
+        
+        # self.minsize(300, 200)
+        self.resizable(False, False)
+
+        # Название программы и скрытый прикол
+        self.program_label = tk.Label(
+            self,
+            text=ABOUT_TOOL_NAME,
+            justify="left",
+            anchor="w",
+            wraplength=380
+        )
+        self.program_label.pack(padx=10, pady=(10, 0), fill="x")
+        self.program_label.bind("<Button-1>", self._on_title_click)
+
+        # Основной текст
+        about_tool_full = ABOUT_TOOL_DESCRIPTION + "\n\n" + ABOUT_TOOL_AUTHOR + "\n" + ABOUT_TOOL_REQUESTED + "\n\n" + ABOUT_TOOL_DISCORD
+        text_label = tk.Label(
+            self, text=about_tool_full, justify="left", anchor="w", wraplength=380
+        )
+        text_label.pack(padx=10, pady=10, fill="x")
+        
+        # Кликабельная ссылка
+        self._add_link(ABOUT_TOOL_LINK, ABOUT_TOOL_LINK_2)
+        # self._add_link(ABOUT_TOOL_DISCORD, "https://discordapp.com/users/237650927484403714")
+        
+        # Счетчик кликов по картинке
+        self._click_count = 0
+        self.target_clicks_count = 10
+        self._secret_shown = False
+        
+        # Картинка
+        self.secret_image = tk.PhotoImage(file=resource_path("memas.png"))
+
+        # Кнопки
+        button_frame = tk.Frame(self)
+        button_frame.pack(pady=10)
+
+        ok_button = tk.Button(button_frame, text="     OK     ", command=self.on_ok, default="active")
+        ok_button.pack(side="left", padx=5)
+        
+        # Enter или Esc = OK
+        self.bind("<Return>", lambda event: self.on_ok())
+        self.bind("<Escape>", lambda event: self.on_ok())
+
+        # Сделать окно модальным
+        self.transient(parent)           # держать поверх parent и не показывать в таскбаре
+        self.lift()                      # поднять
+        self.update_idletasks()
+        try:
+            self.wait_visibility()       # на macOS/Wayland помогает дождаться появления
+        except Exception:
+            pass
+        self.focus_force()               # или self.focus_set()
+        self.grab_set()                  # модальность
+
+        # Иногда на Windows полезно кратко сделать topmost, затем снять:
+        self.attributes("-topmost", True)
+        self.after(10, lambda: self.attributes("-topmost", False))
+
+        # Центрирование
+        self.update_idletasks()
+        w = self.winfo_width()
+        h = self.winfo_height()
+        ws = self.winfo_screenwidth()
+        hs = self.winfo_screenheight()
+        x = (ws // 2) - (w // 2)
+        y = (hs // 2) - (h // 2)
+        self.geometry(f"{w}x{h}+{x}+{y}")
+        
+        # Особая уличная магия для чёрной шапки окна
+        enable_win_dark_titlebar(self, enable=(parent.theme == "dark"))
+
+        # Ждать закрытия
+        self.wait_window()
+
+    # Метод создания кликабельных ссылок
+    def _add_link(self, text, url):
+        link = tk.Label(
+            self, text=text, fg="#00FF72", cursor="hand2", font=("Arial", 10, "underline") # #00FFFF
+        )
+        link.pack(pady=2, anchor="w", padx=10)
+        link.bind("<Button-1>", lambda e: webbrowser.open_new(url))
+
+    # Метод кликов по названию
+    def _on_title_click(self, event):
+        self._click_count += 1
+        if self._click_count >= self.target_clicks_count and not self._secret_shown:
+            self._show_secret()
+
+    # Специальное действие
+    def _show_secret(self):
+        self._secret_shown = True
+
+        secret_win = tk.Toplevel(self)
+        secret_win.title("lmao title text")
+        # secret_win.geometry("250x250")
+        secret_win.resizable(False, False)
+
+        img_label = tk.Label(secret_win, image=self.secret_image)
+        img_label.pack(expand=True, pady=20)
+
+        # Центрирование
+        secret_win.update_idletasks()
+        w = secret_win.winfo_width()
+        h = secret_win.winfo_height()
+        ws = secret_win.winfo_screenwidth()
+        hs = secret_win.winfo_screenheight()
+        x = (ws // 2) - (w // 2)
+        y = (hs // 2) - (h // 2)
+        secret_win.geometry(f"{w}x{h}+{x}+{y}")
+
+    def on_ok(self):
+        self.destroy()
 
 def main():
     app = App()
