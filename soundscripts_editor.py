@@ -11,7 +11,7 @@ import sys
 import webbrowser
 
 # Константы о программе
-ABOUT_TOOL_VERSION      = "0.3.0"
+ABOUT_TOOL_VERSION      = "1.0.0"
 ABOUT_TOOL_NAME         = f"Soundscripts Editor v{ABOUT_TOOL_VERSION}"
 ABOUT_TOOL_DESCRIPTION  = "This tool helps to edit soundscripts files used on Source Engine."
 ABOUT_TOOL_AUTHOR       = "Shitcoded by Ambiabstract (Sergey Shavin)."
