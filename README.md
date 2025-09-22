@@ -3,7 +3,7 @@
 ## Description
 Soundscripts Editor is a GUI tool designed to simplify editing of [**soundscripts**](https://developer.valvesoftware.com/wiki/Soundscripts) used in the Source Engine.\
 It provides a convenient table-like interface with drag-and-drop support.\
-This program may be especially useful for mod developers.
+It can be especially useful for developers of story-driven mods with a large number of new character lines.
 
 <img width="1024" height="738" alt="изображение" src="https://github.com/user-attachments/assets/031fffcf-3ef7-41b8-bec7-1c3f0a984614" />
 
