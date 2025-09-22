@@ -18,7 +18,7 @@ It can be especially useful for developers of story-driven mods with a large num
 -   **File Management**
     -   Open and edit existing soundscript `.txt` files
     -   Save and export soundscripts in proper format
-    -   Drag-and-drop support for WAV files and soundscript `.txt` files
+    -   Drag-and-drop support for WAV files (batch import) and soundscript `.txt` file
 -   **Convenience**
     -   Caching of project path and window size
     -   Integration with `gameinfo.txt` to fetch project name
