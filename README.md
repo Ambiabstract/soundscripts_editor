@@ -13,8 +13,8 @@ It can be especially useful for developers of story-driven mods with a large num
     -   Add, edit, or remove entries directly in a table
     -   Batch editing for channels, soundlevels, volumes, and pitches
     -   Manage sound lists (`wave` / `rndwave` blocks)
-    -   Names editing
-    -   Integrated search across soundscripts
+    -   Edit names
+    -   Integrated search across soundscript
 -   **File Management**
     -   Open and edit existing soundscript `.txt` files
     -   Save and export soundscripts in proper format
