@@ -42,6 +42,7 @@ It can be especially useful for developers of story-driven mods with a large num
 - More hotkeys
 - Function to add an entry prefix to selected names
 - Go to a specific number/index feature
+- Playing sounds
 
 ## Screenshots
 <img width="381" height="311" alt="изображение" src="https://github.com/user-attachments/assets/34b56d80-0ffe-400e-ac6c-6a3a86c69b4c" />
